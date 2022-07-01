@@ -200,6 +200,7 @@
     "bittorrent-peerid": "^1.3.3",
     "blob-util": "^2.0.2",
     "clipboard-polyfill": "^3.0.3",
+    "create-torrent": "^5.0.2",
     "electron-debug": "^3.2.0",
     "electron-is": "^3.0.0",
     "electron-log": "^4.3.5",

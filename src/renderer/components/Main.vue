@@ -4,6 +4,7 @@
     <router-view />
     <mo-speedometer />
     <mo-add-task :visible="addTaskVisible" :type="addTaskType" />
+    <mo-make-torrent :visible="makeTorrentVisible" />
     <mo-about-panel :visible="aboutPanelVisible" />
     <mo-task-detail
       :visible="taskDetailVisible"
@@ -22,6 +23,7 @@
   import Aside from '@/components/Aside/Index'
   import Speedometer from '@/components/Speedometer/Speedometer'
   import AddTask from '@/components/Task/AddTask'
+  import MakeTorrent from '@/components/Torrent/MakeTorrent'
   import TaskDetail from '@/components/TaskDetail/Index'
   import Dragger from '@/components/Dragger/Index'
 
@@ -32,6 +34,7 @@
       [Aside.name]: Aside,
       [Speedometer.name]: Speedometer,
       [AddTask.name]: AddTask,
+      [MakeTorrent.name]: MakeTorrent,
       [TaskDetail.name]: TaskDetail,
       [Dragger.name]: Dragger
     },
@@ -39,6 +42,7 @@
       ...mapState('app', {
         aboutPanelVisible: state => state.aboutPanelVisible,
         addTaskVisible: state => state.addTaskVisible,
+        makeTorrentVisible: state => state.makeTorrentVisible,
         addTaskType: state => state.addTaskType
       }),
       ...mapState('task', {
