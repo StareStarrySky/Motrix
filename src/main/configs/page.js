@@ -8,10 +8,10 @@ export default {
       height: 768,
       minWidth: 478,
       minHeight: 420,
-      // backgroundColor: '#FFFFFF',
-      transparent: !is.windows()
+      transparent: is.macOS()
     },
     bindCloseToHide: true,
+    openDevTools: is.dev(),
     url: is.dev() ? 'http://localhost:9080' : require('path').join('file://', __dirname, '/index.html')
   }
 }

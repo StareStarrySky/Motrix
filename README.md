@@ -1,8 +1,10 @@
 # Motrix
 
-<a href="https://motrix.app">
-  <img src="./static/512x512.png" width="256" alt="App Icon" />
-</a>
+<p>
+  <a href="https://motrix.app">
+    <img src="./static/512x512.png" width="256" alt="Motrix App Icon" />
+  </a>
+</p>
 
 ## A full-featured download manager
 
@@ -47,11 +49,21 @@ scoop install motrix
 
 ### macOS
 
-The macOS users can install Motrix using `brew cask`, thanks to [PR](https://github.com/Homebrew/homebrew-cask/pull/59494) of [@Mitscherlich](https://github.com/Mitscherlich).
+The macOS users can install Motrix using `brew`, thanks to [PR](https://github.com/Homebrew/homebrew-cask/pull/59494) of [@Mitscherlich](https://github.com/Mitscherlich).
 
 ```bash
-brew update && brew install --cask motrix
+brew update && brew install motrix
 ```
+
+#### Auto Update
+
+Since Motrix v1.8.0 and later versions changed the App BundleID ( `net.agalwood.Motrix` => `app.motrix.native` ), the automatic update of Motrix v1.6.11 will fail. [Motrix Install Assistant](https://github.com/motrixapp/motrix-install-assistant) will help you install the latest Motrix application.
+
+<p>
+  <a href="https://github.com/motrixapp/motrix-install-assistant">
+    <img src="https://raw.githubusercontent.com/motrixapp/motrix-install-assistant/main/build/256x256.png" width="192" alt="Motrix Install Assistant Icon" />
+  </a>
+</p>
 
 ### Linux
 
@@ -93,7 +105,7 @@ For Arch Linux users, Motrix is available in [aur](https://aur.archlinux.org/pac
 Run the following command to install:
 
 ```bash
-yay motrix
+yay -S motrix
 ```
 
 #### Flatpak
@@ -161,6 +173,11 @@ yarn run dev
 ```bash
 yarn run build
 ```
+#### Build for Apple Silicon
+
+```bash
+yarn run build:applesilicon
+```
 
 After building, the application will be found in the project's `release` directory.
 
@@ -168,7 +185,7 @@ After building, the application will be found in the project's `release` directo
 
 - [Electron](https://electronjs.org/)
 - [Vue](https://vuejs.org/) + [VueX](https://vuex.vuejs.org/) + [Element](https://element.eleme.io)
-- [Aria2](https://aria2.github.io/) (Note: macOS and Linux versions use 64-bit aria2c, Windows version uses 32-bit)
+- [Aria2](https://aria2.github.io/)
 
 ## ☑️ TODO
 
@@ -198,17 +215,18 @@ Translations into versions for other languages are welcome 🧐! Please read the
 | it    | Italiano            | ✔️ [@blackcat-917](https://github.com/blackcat-917) |
 | ja    | 日本語               | ✔️ [@hbkrkzk](https://github.com/hbkrkzk) |
 | ko    | 한국어                | ✔️ [@KOZ39](https://github.com/KOZ39) |
-| nb    | Norsk Bokmål        |    [@rubjo](https://github.com/rubjo) |
+| nb    | Norsk Bokmål        | ✔️ [@rubjo](https://github.com/rubjo) |
 | nl    | Nederlands          | ✔️ [@nickbouwhuis](https://github.com/nickbouwhuis) |
 | pl    | Polski              | ✔️ [@KanarekLife](https://github.com/KanarekLife) |
 | pt-BR | Portuguese (Brazil) | ✔️ [@andrenoberto](https://github.com/andrenoberto) |
 | ro    | Română              | ✔️ [@alyn3d](https://github.com/alyn3d) |
 | ru    | Русский             | ✔️ [@bladeaweb](https://github.com/bladeaweb) |
+| th    | แบบไทย              | ✔️ [@nxanywhere](https://github.com/nxanywhere) |
 | tr    | Türkçe              | ✔️ [@abdullah](https://github.com/abdullah) |
 | uk    | Українська          | ✔️ [@bladeaweb](https://github.com/bladeaweb) |
 | vi    | Tiếng Việt          | ✔️ [@duythanhvn](https://github.com/duythanhvn) |
 | zh-CN | 简体中文             | ✔️           |
-| zh-TW | 繁體中文             | ✔️ [@Yukaii](https://github.com/Yukaii) |
+| zh-TW | 繁體中文             | ✔️ [@Yukaii](https://github.com/Yukaii) [@5idereal](https://github.com/5idereal) |
 
 ## 📜 License
 

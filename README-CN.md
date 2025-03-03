@@ -1,8 +1,10 @@
 # Motrix
 
-<a href="https://motrix.app">
-  <img src="./static/512x512.png" width="256" alt="App Icon" />
-</a>
+<p>
+  <a href="https://motrix.app">
+    <img src="./static/512x512.png" width="256" alt="Motrix App Icon" />
+  </a>
+</p>
 
 ## 一款全能的下载工具
 
@@ -47,11 +49,20 @@ scoop install motrix
 
 ### macOS
 
-macOS 用户可以使用 `brew cask` 安装 Motrix，感谢 [@Mitscherlich](https://github.com/Mitscherlich) 的 [PR](https://github.com/Homebrew/homebrew-cask/pull/59494)。
+macOS 用户可以使用 `brew` 安装 Motrix，感谢 [@Mitscherlich](https://github.com/Mitscherlich) 的 [PR](https://github.com/Homebrew/homebrew-cask/pull/59494)。
 
 ```bash
-brew update && brew install --cask motrix
+brew update && brew install motrix
 ```
+
+#### 自动更新
+Motrix v1.8.0+ 版本更改了应用 BundleID ( `net.agalwood.Motrix` => `app.motrix.native` ), Motrix v1.6.11 的自动更新会因为签名不一致而失败。[Motrix 安装助手](https://github.com/motrixapp/motrix-install-assistant)将帮助您安装最新的 Motrix 应用程序。
+
+<p>
+  <a href="https://github.com/motrixapp/motrix-install-assistant">
+    <img src="https://raw.githubusercontent.com/motrixapp/motrix-install-assistant/main/build/256x256.png" width="192" alt="Motrix Install Assistant Icon" />
+  </a>
+</p>
 
 ### Linux
 
@@ -91,7 +102,7 @@ v1.5.10 提示
 运行以下命令进行安装：
 
 ```bash
-yay motrix
+yay -S motrix
 ```
 
 #### Flatpak
@@ -147,8 +158,8 @@ yarn
 天朝大陆用户建议使用淘宝的 npm 源
 
 ```bash
-yarn config set registry 'https://registry.npm.taobao.org'
-npm config set registry 'https://registry.npm.taobao.org'
+yarn config set registry 'https://registry.npmmirror.com'
+npm config set registry 'https://registry.npmmirror.com'
 export ELECTRON_MIRROR='https://npm.taobao.org/mirrors/electron/'
 export SASS_BINARY_SITE='https://npm.taobao.org/mirrors/node-sass'
 ```
@@ -168,14 +179,18 @@ yarn run dev
 ```bash
 yarn run build
 ```
+#### 编译 Apple Silicon 版本
 
+```bash
+yarn run build:applesilicon
+```
 完成之后可以在项目的 `release` 目录看到编译打包好的应用文件
 
 ## 🛠 技术栈
 
 - [Electron](https://electronjs.org/)
 - [Vue](https://vuejs.org/) + [VueX](https://vuex.vuejs.org/) + [Element](https://element.eleme.io)
-- [Aria2](https://aria2.github.io/) (注：macOS 和 Linux 版本使用的是 64 位的 aria2c，Windows 版使用的 32 位的）
+- [Aria2](https://aria2.github.io/)
 
 ## ☑️ TODO
 
@@ -205,16 +220,18 @@ yarn run build
 | it    | Italiano            | ✔️ [@blackcat-917](https://github.com/blackcat-917) |
 | ja    | 日本語               | ✔️ [@hbkrkzk](https://github.com/hbkrkzk) |
 | ko    | 한국어                | ✔️ [@KOZ39](https://github.com/KOZ39) |
-| nb    | Norsk Bokmål        |    [@rubjo](https://github.com/rubjo) |
+| nb    | Norsk Bokmål        | ✔️ [@rubjo](https://github.com/rubjo) |
+| nl    | Nederlands          | ✔️ [@nickbouwhuis](https://github.com/nickbouwhuis) |
 | pl    | Polski              | ✔️ [@KanarekLife](https://github.com/KanarekLife) |
 | pt-BR | Portuguese (Brazil) | ✔️ [@andrenoberto](https://github.com/andrenoberto) |
 | ro    | Română              | ✔️ [@alyn3d](https://github.com/alyn3d) |
 | ru    | Русский             | ✔️ [@bladeaweb](https://github.com/bladeaweb) |
+| th    | แบบไทย              | ✔️ [@nxanywhere](https://github.com/nxanywhere) |
 | tr    | Türkçe              | ✔️ [@abdullah](https://github.com/abdullah) |
 | uk    | Українська          | ✔️ [@bladeaweb](https://github.com/bladeaweb) |
 | vi    | Tiếng Việt          | ✔️ [@duythanhvn](https://github.com/duythanhvn) |
 | zh-CN | 简体中文             | ✔️           |
-| zh-TW | 繁體中文             | ✔️ [@Yukaii](https://github.com/Yukaii) |
+| zh-TW | 繁體中文             | ✔️ [@Yukaii](https://github.com/Yukaii) [@5idereal](https://github.com/5idereal) |
 
 ## 📜 开源许可
 

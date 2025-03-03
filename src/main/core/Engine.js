@@ -1,19 +1,18 @@
-import { app } from 'electron'
+import { spawn } from 'node:child_process'
+import { existsSync, writeFile, unlink } from 'node:fs'
 import is from 'electron-is'
-import { existsSync, writeFile, unlink } from 'fs'
-import { resolve, join } from 'path'
-import { spawn } from 'child_process'
 
 import logger from './Logger'
 import { getI18n } from '../ui/Locale'
 import {
-  getEngineBin,
   getEnginePidPath,
+  getAria2BinPath,
+  getAria2ConfPath,
   getSessionPath,
   transformConfig
 } from '../utils/index'
 
-const { platform } = process
+const { platform, arch } = process
 
 export default class Engine {
   // ChildProcess | null
@@ -25,7 +24,6 @@ export default class Engine {
     this.i18n = getI18n()
     this.systemConfig = options.systemConfig
     this.userConfig = options.userConfig
-    this.basePath = this.getBasePath()
   }
 
   start () {
@@ -36,7 +34,7 @@ export default class Engine {
       return
     }
 
-    const binPath = this.getBinPath()
+    const binPath = this.getEngineBinPath()
     const args = this.getStartArgs()
     this.instance = spawn(binPath, args, {
       windowsHide: false,
@@ -45,9 +43,9 @@ export default class Engine {
     const pid = this.instance.pid.toString()
     this.writePidFile(pidPath, pid)
 
-    this.instance.once('close', function () {
+    this.instance.once('close', () => {
       try {
-        unlink(pidPath, function (err) {
+        unlink(pidPath, (err) => {
           if (err) {
             logger.warn(`[Motrix] Unlink engine process pid file failed: ${err}`)
           }
@@ -58,17 +56,18 @@ export default class Engine {
     })
 
     if (is.dev()) {
-      this.instance.stdout.on('data', function (data) {
+      this.instance.stdout.on('data', (data) => {
         logger.log('[Motrix] engine stdout===>', data.toString())
       })
 
-      this.instance.stderr.on('data', function (data) {
+      this.instance.stderr.on('data', (data) => {
         logger.log('[Motrix] engine stderr===>', data.toString())
       })
     }
   }
 
   stop () {
+    logger.info('[Motrix] engine.stop.instance')
     if (this.instance) {
       this.instance.kill()
       this.instance = null
@@ -83,13 +82,8 @@ export default class Engine {
     })
   }
 
-  getBinPath () {
-    const binName = getEngineBin(platform)
-    if (!binName) {
-      throw new Error(this.i18n.t('app.engine-damaged-message'))
-    }
-
-    const result = join(this.basePath, `/engine/${binName}`)
+  getEngineBinPath () {
+    const result = getAria2BinPath(platform, arch)
     const binIsExist = existsSync(result)
     if (!binIsExist) {
       logger.error('[Motrix] engine bin is not exist:', result)
@@ -99,20 +93,10 @@ export default class Engine {
     return result
   }
 
-  getBasePath () {
-    let result = resolve(app.getAppPath(), '..')
-
-    if (is.dev()) {
-      result = resolve(__dirname, `../../../extra/${platform}`)
-    }
-
-    return result
-  }
-
   getStartArgs () {
-    const confPath = join(this.basePath, '/engine/aria2.conf')
+    const confPath = getAria2ConfPath(platform, arch)
 
-    const sessionPath = this.userConfig['session-path'] || getSessionPath()
+    const sessionPath = getSessionPath()
     const sessionIsExist = existsSync(sessionPath)
 
     let result = [`--conf-path=${confPath}`, `--save-session=${sessionPath}`]

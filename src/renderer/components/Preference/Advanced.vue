@@ -49,15 +49,15 @@
           :label-width="formLabelWidth"
         >
           <el-switch
-            v-model="form.useProxy"
-            :active-text="$t('preferences.use-proxy')"
-            @change="onUseProxyChange"
+            v-model="form.proxy.enable"
+            :active-text="$t('preferences.enable-proxy')"
+            @change="onProxyEnableChange"
             >
           </el-switch>
         </el-form-item>
         <el-form-item
           :label-width="formLabelWidth"
-          v-if="form.useProxy"
+          v-if="form.proxy.enable"
           style="margin-top: -16px;"
         >
           <el-col
@@ -69,8 +69,8 @@
           >
             <el-input
               placeholder="[http://][USER:PASSWORD@]HOST[:PORT]"
-              @change="onAllProxyBackupChange"
-              v-model="form.allProxyBackup">
+              @change="onProxyServerChange"
+              v-model="form.proxy.server">
             </el-input>
           </el-col>
           <el-col
@@ -84,9 +84,30 @@
               type="textarea"
               rows="2"
               auto-complete="off"
-              :placeholder="`${$t('preferences.no-proxy-input-tips')}`"
-              v-model="form.noProxy">
+              @change="handleProxyBypassChange"
+              :placeholder="`${$t('preferences.proxy-bypass-input-tips')}`"
+              v-model="form.proxy.bypass">
             </el-input>
+          </el-col>
+          <el-col
+            class="form-item-sub"
+            :xs="24"
+            :sm="24"
+            :md="20"
+            :lg="20"
+          >
+            <el-select
+              class="proxy-scope"
+              v-model="form.proxy.scope"
+              multiple
+            >
+              <el-option
+                v-for="item in proxyScopeOptions"
+                :key="item"
+                :label="$t(`preferences.proxy-scope-${item}`)"
+                :value="item"
+              />
+            </el-select>
             <div class="el-form-item__info" style="margin-top: 8px;">
               <a target="_blank" href="https://github.com/agalwood/Motrix/wiki/Proxy" rel="noopener noreferrer">
                 {{ $t('preferences.proxy-tips') }}
@@ -190,6 +211,59 @@
           </div>
         </el-form-item>
         <el-form-item
+          :label="`${$t('preferences.rpc')}: `"
+          :label-width="formLabelWidth"
+        >
+          <el-row style="margin-bottom: 8px;">
+            <el-col
+              class="form-item-sub"
+              :xs="24"
+              :sm="18"
+              :md="10"
+              :lg="10"
+            >
+              {{ $t('preferences.rpc-listen-port') }}
+              <el-input
+                :placeholder="rpcDefaultPort"
+                :maxlength="8"
+                v-model="form.rpcListenPort"
+                @change="onRpcListenPortChange"
+              >
+                <i slot="append" @click.prevent="onRpcPortDiceClick">
+                  <mo-icon name="dice" width="12" height="12" />
+                </i>
+              </el-input>
+            </el-col>
+          </el-row>
+          <el-row style="margin-bottom: 8px;">
+            <el-col
+              class="form-item-sub"
+              :xs="24"
+              :sm="18"
+              :md="18"
+              :lg="18"
+            >
+              {{ $t('preferences.rpc-secret') }}
+              <el-input
+                :show-password="hideRpcSecret"
+                placeholder="RPC Secret"
+                :maxlength="64"
+                v-model="form.rpcSecret"
+              >
+                <i slot="append" @click.prevent="onRpcSecretDiceClick">
+                  <mo-icon name="dice" width="12" height="12" />
+                </i>
+              </el-input>
+              <div class="el-form-item__info" style="margin-top: 8px;">
+                <a target="_blank" href="https://github.com/agalwood/Motrix/wiki/RPC" rel="noopener noreferrer">
+                  {{ $t('preferences.rpc-secret-tips') }}
+                  <mo-icon name="link" width="12" height="12" />
+                </a>
+              </div>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item
           :label="`${$t('preferences.port')}: `"
           :label-width="formLabelWidth"
         >
@@ -221,7 +295,7 @@
                 :maxlength="8"
                 v-model="form.listenPort"
               >
-                <i slot="append" @click.prevent="onPortDiceClick">
+                <i slot="append" @click.prevent="onBtPortDiceClick">
                   <mo-icon name="dice" width="12" height="12" />
                 </i>
               </el-input>
@@ -271,7 +345,7 @@
           </el-col>
         </el-form-item>
         <el-form-item
-          :label="`${$t('preferences.security')}: `"
+          :label="`${$t('preferences.user-agent')}: `"
           :label-width="formLabelWidth"
         >
           <el-col class="form-item-sub" :span="24">
@@ -290,43 +364,18 @@
               <el-button @click="() => changeUA('du')">du</el-button>
             </el-button-group>
           </el-col>
-          <el-col
-            class="form-item-sub"
-            :xs="24"
-            :sm="18"
-            :md="18"
-            :lg="18"
-          >
-            {{ $t('preferences.rpc-secret') }}
-            <el-input
-              :show-password="hideRpcSecret"
-              placeholder="RPC Secret"
-              :maxlength="24"
-              v-model="form.rpcSecret"
-            >
-              <i slot="append" @click.prevent="onDiceClick">
-                <mo-icon name="dice" width="12" height="12" />
-              </i>
-            </el-input>
-            <div class="el-form-item__info" style="margin-top: 8px;">
-              <a target="_blank" href="https://github.com/agalwood/Motrix/wiki/RPC" rel="noopener noreferrer">
-                {{ $t('preferences.rpc-secret-tips') }}
-                <mo-icon name="link" width="12" height="12" />
-              </a>
-            </div>
-          </el-col>
         </el-form-item>
         <el-form-item
           :label="`${$t('preferences.developer')}: `"
           :label-width="formLabelWidth"
         >
           <el-col class="form-item-sub" :span="24">
-            {{ $t('preferences.app-log-path') }}
-            <el-input placeholder="" disabled v-model="logPath">
+            {{ $t('preferences.aria2-conf-path') }}
+            <el-input placeholder="" disabled v-model="aria2ConfPath">
               <mo-show-in-folder
                 slot="append"
                 v-if="isRenderer"
-                :path="logPath"
+                :path="aria2ConfPath"
               />
             </el-input>
           </el-col>
@@ -339,6 +388,30 @@
                 :path="sessionPath"
               />
             </el-input>
+          </el-col>
+          <el-col class="form-item-sub" :span="24">
+            {{ $t('preferences.app-log-path') }}
+            <el-row :gutter="16">
+              <el-col :span="18">
+                <el-input placeholder="" disabled v-model="logPath">
+                  <mo-show-in-folder
+                  slot="append"
+                  v-if="isRenderer"
+                  :path="logPath"
+                  />
+                </el-input>
+              </el-col>
+              <el-col :span="6">
+                <el-select v-model="form.logLevel">
+                  <el-option
+                    v-for="item in logLevels"
+                    :key="item"
+                    :label="item"
+                    :value="item">
+                  </el-option>
+                </el-select>
+              </el-col>
+            </el-row>
           </el-col>
           <el-col class="form-item-sub" :span="24">
             <el-button plain type="warning" @click="() => onSessionResetClick()">
@@ -373,13 +446,17 @@
   import { mapState } from 'vuex'
   import { cloneDeep, extend, isEmpty } from 'lodash'
   import randomize from 'randomatic'
-  import * as clipboard from 'clipboard-polyfill'
   import ShowInFolder from '@/components/Native/ShowInFolder'
   import SubnavSwitcher from '@/components/Subnav/SubnavSwitcher'
   import userAgentMap from '@shared/ua'
-  import { APP_RUN_MODE, trackerSourceOptions } from '@shared/constants'
   import {
-    backupConfig,
+    EMPTY_STRING,
+    ENGINE_RPC_PORT,
+    LOG_LEVELS,
+    TRACKER_SOURCE_OPTIONS,
+    PROXY_SCOPE_OPTIONS
+  } from '@shared/constants'
+  import {
     buildRpcUrl,
     calcFormLabelWidth,
     changedConfig,
@@ -387,7 +464,7 @@
     convertCommaToLine,
     convertLineToComma,
     diffConfig,
-    getRandomInt
+    generateRandomInt
   } from '@shared/utils'
   import { convertTrackerDataToLine, reduceTrackerString } from '@shared/utils/tracker'
   import '@/components/Icons/dice'
@@ -398,8 +475,6 @@
 
   const initForm = (config) => {
     const {
-      allProxy,
-      allProxyBackup,
       autoCheckUpdate,
       autoSyncTracker,
       btTracker,
@@ -409,8 +484,9 @@
       lastCheckUpdateTime,
       lastSyncTrackerTime,
       listenPort,
-      noProxy,
+      logLevel,
       protocols,
+      proxy,
       rpcListenPort,
       rpcSecret,
       trackerSource,
@@ -418,8 +494,6 @@
       userAgent
     } = config
     const result = {
-      allProxy,
-      allProxyBackup,
       autoCheckUpdate,
       autoSyncTracker,
       btTracker: convertCommaToLine(btTracker),
@@ -429,10 +503,9 @@
       lastCheckUpdateTime,
       lastSyncTrackerTime,
       listenPort,
-      noProxy: convertCommaToLine(noProxy),
-      protocols: {
-        ...protocols
-      },
+      logLevel,
+      proxy: cloneDeep(proxy),
+      protocols: { ...protocols },
       rpcListenPort,
       rpcSecret,
       trackerSource,
@@ -459,8 +532,9 @@
         formLabelWidth: calcFormLabelWidth(locale),
         formOriginal,
         hideRpcSecret: true,
+        proxyScopeOptions: PROXY_SCOPE_OPTIONS,
         rules: {},
-        trackerSourceOptions,
+        trackerSourceOptions: TRACKER_SOURCE_OPTIONS,
         trackerSyncing: false
       }
     },
@@ -488,22 +562,40 @@
           }
         ]
       },
+      rpcDefaultPort () {
+        return ENGINE_RPC_PORT
+      },
+      logLevels () {
+        return LOG_LEVELS
+      },
       ...mapState('preference', {
         config: state => state.config,
+        aria2ConfPath: state => state.config.aria2ConfPath,
         logPath: state => state.config.logPath,
         sessionPath: state => state.config.sessionPath
       })
     },
     watch: {
+      'form.rpcListenPort' (val) {
+        const url = buildRpcUrl({
+          port: this.form.rpcListenPort,
+          secret: val
+        })
+        navigator.clipboard.writeText(url)
+      },
       'form.rpcSecret' (val) {
         const url = buildRpcUrl({
           port: this.form.rpcListenPort,
           secret: val
         })
-        clipboard.writeText(url)
+        navigator.clipboard.writeText(url)
       }
     },
     methods: {
+      handleLocaleChange (locale) {
+        const lng = getLanguage(locale)
+        getLocaleManager().changeLanguage(lng)
+      },
       onCheckUpdateClick () {
         this.$electron.ipcRenderer.send('command', 'application:check-for-updates')
         this.$msg.info(this.$t('app.checking-for-updates'))
@@ -534,11 +626,29 @@
           [protocol]: enabled
         }
       },
-      onUseProxyChange (flag) {
-        this.form.allProxy = flag ? this.form.allProxyBackup : ''
+      onProxyEnableChange (enable) {
+        this.form.proxy = {
+          ...this.form.proxy,
+          enable
+        }
       },
-      onAllProxyBackupChange (value) {
-        this.form.allProxy = value
+      onProxyServerChange (server) {
+        this.form.proxy = {
+          ...this.form.proxy,
+          server
+        }
+      },
+      handleProxyBypassChange (bypass) {
+        this.form.proxy = {
+          ...this.form.proxy,
+          bypass: convertLineToComma(bypass)
+        }
+      },
+      onProxyScopeChange (scope) {
+        this.form.proxy = {
+          ...this.form.proxy,
+          scope: [...scope]
+        }
       },
       changeUA (type) {
         const ua = userAgentMap[type]
@@ -547,17 +657,27 @@
         }
         this.form.userAgent = ua
       },
-      onPortDiceClick () {
-        const port = getRandomInt(20000, 24999)
+      onBtPortDiceClick () {
+        const port = generateRandomInt(20000, 24999)
         this.form.listenPort = port
       },
       onDhtPortDiceClick () {
-        const port = getRandomInt(25000, 29999)
+        const port = generateRandomInt(25000, 29999)
         this.form.dhtListenPort = port
       },
-      onDiceClick () {
+      onRpcListenPortChange (value) {
+        console.log('onRpcListenPortChange===>', value)
+        if (EMPTY_STRING === value) {
+          this.form.rpcListenPort = this.rpcDefaultPort
+        }
+      },
+      onRpcPortDiceClick () {
+        const port = generateRandomInt(ENGINE_RPC_PORT, 20000)
+        this.form.rpcListenPort = port
+      },
+      onRpcSecretDiceClick () {
         this.hideRpcSecret = false
-        const rpcSecret = randomize('Aa0', 12)
+        const rpcSecret = randomize('Aa0', 16)
         this.form.rpcSecret = rpcSecret
 
         setTimeout(() => {
@@ -590,7 +710,7 @@
           cancelId: 1
         }).then(({ response }) => {
           if (response === 0) {
-            this.$electron.ipcRenderer.send('command', 'application:reset')
+            this.$electron.ipcRenderer.send('command', 'application:factory-reset')
           }
         })
       },
@@ -599,10 +719,6 @@
           .then((config) => {
             this.form = initForm(config)
             this.formOriginal = cloneDeep(this.form)
-            if (changedConfig.basic.theme !== undefined) {
-              this.$electron.ipcRenderer.send('command',
-                                              'application:change-theme', changedConfig.basic.theme)
-            }
           })
       },
       submitForm (formName) {
@@ -617,20 +733,25 @@
             ...changedConfig.basic
           }
 
-          const { btAutoDownloadContent, runMode, openAtLogin, autoHideWindow, btTracker, noProxy } = data
+          const {
+            autoHideWindow,
+            btAutoDownloadContent,
+            btTracker,
+            rpcListenPort
+          } = data
 
           if ('btAutoDownloadContent' in data) {
-            data.pauseMetadata = !btAutoDownloadContent
-            data.followMetalink = btAutoDownloadContent
             data.followTorrent = btAutoDownloadContent
+            data.followMetalink = btAutoDownloadContent
+            data.pauseMetadata = !btAutoDownloadContent
           }
 
           if (btTracker) {
             data.btTracker = reduceTrackerString(convertLineToComma(btTracker))
           }
 
-          if (noProxy) {
-            data.noProxy = convertLineToComma(noProxy)
+          if (rpcListenPort === EMPTY_STRING) {
+            data.rpcListenPort = this.rpcDefaultPort
           }
 
           console.log('[Motrix] preference changed data:', data)
@@ -649,26 +770,10 @@
           changedConfig.advanced = {}
 
           if (this.isRenderer) {
-            this.$electron.ipcRenderer.send('command',
-                                            'application:open-at-login', openAtLogin)
-
-            if ('runMode' in data) {
-              this.$electron.ipcRenderer.send('command',
-                                              'application:toggle-dock', runMode === APP_RUN_MODE.STANDARD)
-            }
-
             if ('autoHideWindow' in data) {
               this.$electron.ipcRenderer.send('command',
                                               'application:auto-hide-window', autoHideWindow)
             }
-
-            if (checkIsNeedRestart(data)) {
-              this.$electron.ipcRenderer.send('command',
-                                              'application:relaunch')
-            }
-
-            this.$electron.ipcRenderer.send('command',
-                                            'application:setup-protocols-client', data.protocols)
 
             if (checkIsNeedRestart(data)) {
               this.$electron.ipcRenderer.send('command', 'application:relaunch')
@@ -696,19 +801,8 @@
             cancelId: 1
           }).then(({ response }) => {
             if (response === 0) {
-              if (changedConfig.basic.theme !== undefined) {
-                this.$electron.ipcRenderer.send('command',
-                                                'application:change-theme', backupConfig.theme)
-              }
-              if (changedConfig.basic.locale !== undefined) {
-                const lng = getLanguage(backupConfig.locale)
-                getLocaleManager().changeLanguage(lng)
-                this.$electron.ipcRenderer.send('command',
-                                                'application:change-locale', lng)
-              }
               changedConfig.basic = {}
               changedConfig.advanced = {}
-              backupConfig.theme = undefined
               next()
             }
           })
@@ -719,6 +813,9 @@
 </script>
 
 <style lang="scss">
+.proxy-scope {
+  width: 100%;
+}
 .bt-tracker {
   position: relative;
   .sync-tracker-btn {

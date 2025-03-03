@@ -3,21 +3,24 @@ import is from 'electron-is'
 import Store from 'electron-store'
 
 import {
+  getConfigBasePath,
   getDhtPath,
-  getLogPath,
-  getSessionPath,
-  getUserDownloadsPath,
-  getMaxConnectionPerServer
+  getMaxConnectionPerServer,
+  getUserDownloadsPath
 } from '../utils/index'
 import {
   APP_RUN_MODE,
   APP_THEME,
   EMPTY_STRING,
+  ENGINE_RPC_PORT,
   IP_VERSION,
   LOGIN_SETTING_OPTIONS,
   NGOSANG_TRACKERS_BEST_IP_URL_CDN,
-  NGOSANG_TRACKERS_BEST_URL_CDN
+  NGOSANG_TRACKERS_BEST_URL_CDN,
+  PROXY_SCOPES,
+  PROXY_SCOPE_OPTIONS
 } from '@shared/constants'
+import { CHROME_UA } from '@shared/ua'
 import { separateConfig } from '@shared/utils'
 import { reduceTrackerString } from '@shared/utils/tracker'
 
@@ -30,28 +33,27 @@ export default class ConfigManager {
   }
 
   init () {
-    this.initSystemConfig()
     this.initUserConfig()
+    this.initSystemConfig()
   }
 
   /**
-   * Some aria2 conf
+   * Aria2 Configuration Priority
+   * system.json > built-in aria2.conf
    * https://aria2.github.io/manual/en/html/aria2c.html
    *
-   * Best bt trackers
-   * @see https://github.com/ngosang/trackerslist
-   *
-   * @see https://github.com/XIU2/TrackersListCollection
    */
   initSystemConfig () {
     this.systemConfig = new Store({
       name: 'system',
+      cwd: getConfigBasePath(),
       /* eslint-disable quote-props */
       defaults: {
         'all-proxy': EMPTY_STRING,
         'allow-overwrite': false,
         'auto-file-renaming': true,
         'bt-exclude-tracker': EMPTY_STRING,
+        'bt-force-encryption': false,
         'bt-load-saved-metadata': true,
         'bt-save-metadata': true,
         'bt-tracker': EMPTY_STRING,
@@ -60,6 +62,7 @@ export default class ConfigManager {
         'dht-file-path6': getDhtPath(IP_VERSION.V6),
         'dht-listen-port': 26701,
         'dir': getUserDownloadsPath(),
+        'enable-dht6': true,
         'follow-metalink': true,
         'follow-torrent': true,
         'listen-port': 21301,
@@ -67,17 +70,16 @@ export default class ConfigManager {
         'max-connection-per-server': getMaxConnectionPerServer(),
         'max-download-limit': 0,
         'max-overall-download-limit': 0,
-        'max-overall-upload-limit': '256K',
-        'min-split-size': '1M',
+        'max-overall-upload-limit': 0,
         'no-proxy': EMPTY_STRING,
-        'pause': true,
         'pause-metadata': false,
-        'rpc-listen-port': 16800,
+        'pause': true,
+        'rpc-listen-port': ENGINE_RPC_PORT,
         'rpc-secret': EMPTY_STRING,
-        'seed-ratio': 1,
-        'seed-time': 60,
+        'seed-ratio': 2,
+        'seed-time': 2880,
         'split': getMaxConnectionPerServer(),
-        'user-agent': 'Transmission/2.94'
+        'user-agent': CHROME_UA
       }
       /* eslint-enable quote-props */
     })
@@ -87,6 +89,7 @@ export default class ConfigManager {
   initUserConfig () {
     this.userConfig = new Store({
       name: 'user',
+      cwd: getConfigBasePath(),
       // Schema need electron-store upgrade to 3.x.x,
       // but it will cause the application build to fail.
       // schema: {
@@ -97,26 +100,33 @@ export default class ConfigManager {
       // },
       /* eslint-disable quote-props */
       defaults: {
-        'all-proxy-backup': EMPTY_STRING,
         'auto-check-update': is.macOS(),
         'auto-hide-window': false,
         'auto-sync-tracker': true,
         'enable-upnp': true,
         'engine-max-connection-per-server': getMaxConnectionPerServer(),
+        'favorite-directories': [],
         'hide-app-menu': is.windows() || is.linux(),
+        'history-directories': [],
         'keep-seeding': false,
         'keep-window-state': false,
         'last-check-update-time': 0,
         'last-sync-tracker-time': 0,
         'locale': app.getLocale(),
-        'log-path': getLogPath(),
+        'log-level': 'warn',
         'new-task-show-downloading': true,
         'no-confirm-before-delete-task': false,
         'open-at-login': false,
         'protocols': { 'magnet': true, 'thunder': false },
+        'proxy': {
+          'enable': false,
+          'server': EMPTY_STRING,
+          'bypass': EMPTY_STRING,
+          'scope': PROXY_SCOPE_OPTIONS
+        },
         'resume-all-when-app-launched': false,
         'run-mode': APP_RUN_MODE.STANDARD,
-        'session-path': getSessionPath(),
+        'show-progress-bar': true,
         'task-notification': true,
         'theme': APP_THEME.AUTO,
         'tracker-source': [
@@ -126,7 +136,6 @@ export default class ConfigManager {
         'tray-theme': APP_THEME.AUTO,
         'tray-speedometer': is.macOS(),
         'update-channel': 'latest',
-        'use-proxy': false,
         'window-state': {}
       }
       /* eslint-enable quote-props */
@@ -137,13 +146,18 @@ export default class ConfigManager {
   fixSystemConfig () {
     // Remove aria2c unrecognized options
     const { others } = separateConfig(this.systemConfig.store)
-    if (!others) {
-      return
+    if (others && Object.keys(others).length > 0) {
+      Object.keys(others).forEach(key => {
+        this.systemConfig.delete(key)
+      })
     }
 
-    Object.keys(others).forEach(key => {
-      this.systemConfig.delete(key)
-    })
+    const proxy = this.getUserConfig('proxy', { enable: false })
+    const { enable, server, bypass, scope = [] } = proxy
+    if (enable && server && scope.includes(PROXY_SCOPES.DOWNLOAD)) {
+      this.setSystemConfig('all-proxy', server)
+      this.setSystemConfig('no-proxy', bypass)
+    }
 
     // Fix spawn ENAMETOOLONG on Windows
     const tracker = reduceTrackerString(this.systemConfig.get('bt-tracker'))

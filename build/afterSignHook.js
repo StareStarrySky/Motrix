@@ -1,6 +1,7 @@
 require('dotenv').config()
-const { notarize } = require('electron-notarize')
-const pkg = require('../package.json')
+const { join } = require('node:path')
+const { notarize } = require('@electron/notarize')
+const { appId } = require('../electron-builder.json')
 
 exports.default = async function (context) {
   const { electronPlatformName, appOutDir } = context
@@ -9,19 +10,27 @@ exports.default = async function (context) {
   }
 
   const skipNotarize = process.env.SKIP_NOTARIZE
-  if (skipNotarize === 'yes') {
-    console.log('skipping notarize')
+  if (skipNotarize === 'true') {
+    console.log('Skipping notarize')
     return
   }
 
-  const appBundleId = pkg.build.appId
+  const appBundleId = appId
   const appName = context.packager.appInfo.productFilename
+  const appPath = join(appOutDir, `${appName}.app`)
 
-  return await notarize({
-    appBundleId,
-    appPath: `${appOutDir}/${appName}.app`,
-    ascProvider: process.env.TEAM_ID,
-    appleId: process.env.APPLE_ID,
-    appleIdPassword: process.env.APPLE_ID_PWD
-  })
+  try {
+    await notarize({
+      tool: 'notarytool',
+      appBundleId,
+      appPath,
+      teamId: process.env.TEAM_ID,
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD
+    })
+  } catch (error) {
+    console.error(error)
+  }
+
+  console.log(`Done notarizing ${appId}`)
 }

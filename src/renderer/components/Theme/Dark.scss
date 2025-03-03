@@ -84,6 +84,10 @@
     }
   }
 
+  .selected .task-item {
+    border-color: $--dk-task-item-hover-border-color;
+  }
+
   .task-name {
     color: $--dk-task-item-text-color;
   }
@@ -231,6 +235,11 @@
       background-color: $--color-primary;
       color: #fff;
     }
+  }
+
+  .el-select-dropdown.is-multiple .el-select-dropdown__item.selected {
+    background-color: #3d3d3d;
+    color: $--color-primary;
   }
 
   .el-upload-dragger {
@@ -439,4 +448,19 @@
     color: #a7a7a7;
   }
 
+  /* Popover */
+  .el-popover {
+    background-color: $--dk-popover-background;
+    border-color: $--dk-popover-border-color;
+  }
+
+  .el-tag.el-tag--info.el-tag--light {
+    background-color: #5b5b5b;
+    border-color: #606060;
+    color: #e6e6e6;
+  }
+
+  .el-tag__close.el-icon-close {
+    color: #2d2d2d;
+  }
 }

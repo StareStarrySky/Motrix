@@ -2,17 +2,17 @@
 
 process.env.BABEL_ENV = 'web'
 
-const devMode = process.env.NODE_ENV !== 'production'
-const path = require('path')
+const path = require('node:path')
 const { dependencies } = require('../package.json')
-const webpack = require('webpack')
-const TerserPlugin = require('terser-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const Webpack = require('webpack')
 const { VueLoaderPlugin } = require('vue-loader')
-const ESLintPlugin = require('eslint-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+const ESLintPlugin = require('eslint-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
+const devMode = process.env.NODE_ENV !== 'production'
 
 /**
  * List of node_modules to include in webpack bundle
@@ -48,7 +48,7 @@ let webConfig = {
             loader: 'sass-loader',
             options: {
               implementation: require('sass'),
-              additionalData: '@import "@/components/Theme/Variables.scss";',
+              additionalData: '@import "@/components/Theme/Variables.scss"',
               sassOptions: {
                 includePaths:[__dirname, 'src']
               }
@@ -66,7 +66,7 @@ let webConfig = {
             options: {
               implementation: require('sass'),
               indentedSyntax: true,
-              additionalData: '@import "@/components/Theme/Variables.scss";',
+              additionalData: '@import "@/components/Theme/Variables.scss"',
               sassOptions: {
                 includePaths:[__dirname, 'src']
               }
@@ -111,23 +111,11 @@ let webConfig = {
       },
       {
         test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            name: 'imgs/[name].[ext]'
-          }
-        }
+        type: 'asset/inline'
       },
       {
         test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
-            name: 'fonts/[name].[ext]'
-          }
-        }
+        type: 'asset/inline'
       }
     ]
   },
@@ -153,11 +141,11 @@ let webConfig = {
         ? path.resolve(__dirname, '../node_modules')
         : false
     }),
-    new webpack.DefinePlugin({
+    new Webpack.DefinePlugin({
       'process.env.IS_WEB': 'true'
     }),
-    new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoEmitOnErrorsPlugin(),
+    new Webpack.HotModuleReplacementPlugin(),
+    new Webpack.NoEmitOnErrorsPlugin(),
     new ESLintPlugin({
       extensions: ['js', 'vue'],
       formatter: require('eslint-friendly-formatter')
@@ -208,10 +196,10 @@ if (!devMode) {
         globOptions: { ignore: [ '.*' ] }
       }]
     }),
-    new webpack.DefinePlugin({
+    new Webpack.DefinePlugin({
       'process.env.NODE_ENV': '"production"'
     }),
-    new webpack.LoaderOptionsPlugin({
+    new Webpack.LoaderOptionsPlugin({
       minimize: true
     })
   )

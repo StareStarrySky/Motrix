@@ -26,17 +26,24 @@
           <template slot-scope="scope">{{ scope.row.extension | removeExtensionDot }}</template>
         </el-table-column>
         <el-table-column
+          v-if="mode === 'DETAIL'"
+          :label="`%`"
+          align="right"
+          width="50">
+          <template slot-scope="scope">{{ calcProgress(scope.row.length, scope.row.completedLength, 1) }}</template>
+        </el-table-column>
+        <el-table-column
+          v-if="mode === 'DETAIL'"
+          :label="`✓`"
+          align="right"
+          width="85">
+          <template slot-scope="scope">{{ scope.row.completedLength | bytesToSize }}</template>
+        </el-table-column>
+        <el-table-column
           :label="$t('task.file-size')"
           align="right"
           width="85">
           <template slot-scope="scope">{{ scope.row.length | bytesToSize }}</template>
-        </el-table-column>
-        <el-table-column
-          v-if="mode === 'DETAIL'"
-          :label="$t('task.file-completed-size')"
-          align="right"
-          width="95">
-          <template slot-scope="scope">{{ scope.row.completedLength | bytesToSize }}</template>
         </el-table-column>
       </el-table>
     </div>
@@ -58,6 +65,9 @@
           <el-button @click="toggleImageSelection()">
             <mo-icon name="image" width="12" height="12" />
           </el-button>
+          <el-button @click="toggleDocumentSelection()">
+            <mo-icon name="document" width="12" height="12" />
+          </el-button>
         </el-button-group>
       </el-col>
       <el-col
@@ -78,15 +88,18 @@
   import '@/components/Icons/video'
   import '@/components/Icons/audio'
   import '@/components/Icons/image'
+  import '@/components/Icons/document'
   import {
     NONE_SELECTED_FILES,
     SELECTED_ALL_FILES
   } from '@shared/constants'
   import {
     bytesToSize,
-    filterVideoFiles,
+    calcProgress,
     filterAudioFiles,
+    filterDocumentFiles,
     filterImageFiles,
+    filterVideoFiles,
     removeExtensionDot
   } from '@shared/utils'
 
@@ -149,6 +162,7 @@
       }
     },
     methods: {
+      calcProgress,
       toggleAllSelection () {
         if (!this.$refs.torrentTable) {
           return
@@ -181,6 +195,10 @@
       },
       toggleImageSelection () {
         const filtered = filterImageFiles(this.files)
+        this.toggleSelection(filtered)
+      },
+      toggleDocumentSelection () {
+        const filtered = filterDocumentFiles(this.files)
         this.toggleSelection(filtered)
       },
       handleRowDbClick (row, column, event) {

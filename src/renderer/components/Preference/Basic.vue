@@ -43,6 +43,11 @@
               {{ $t('preferences.tray-speedometer') }}
             </el-checkbox>
           </el-col>
+          <el-col class="form-item-sub" :span="16">
+            <el-checkbox v-model="form.showProgressBar">
+              {{ $t('preferences.show-progress-bar') }}
+            </el-checkbox>
+          </el-col>
         </el-form-item>
         <el-form-item
           v-if="isMac"
@@ -67,7 +72,6 @@
           <el-col class="form-item-sub" :span="16">
             <el-select
               v-model="form.locale"
-              @change="handleLocaleChange"
               :placeholder="$t('preferences.change-language')">
               <el-option
                 v-for="item in locales"
@@ -107,10 +111,14 @@
           :label-width="formLabelWidth"
         >
           <el-input placeholder="" v-model="form.dir" :readonly="isMas">
+            <mo-history-directory
+              slot="prepend"
+              @selected="handleHistoryDirectorySelected"
+            />
             <mo-select-directory
               v-if="isRenderer"
               slot="append"
-              @selected="onDirectorySelected"
+              @selected="handleNativeDirectorySelected"
             />
           </el-input>
           <div class="el-form-item__info" v-if="isMas" style="margin-top: 8px;">
@@ -123,9 +131,21 @@
         >
           <el-col class="form-item-sub" :span="24">
             {{ $t('preferences.transfer-speed-upload') }}
-            <el-select v-model="form.maxOverallUploadLimit">
+            <el-input-number
+              v-model="maxOverallUploadLimitParsed"
+              controls-position="right"
+              :min="0"
+              :max="65535"
+              :step="1"
+              :label="$t('preferences.transfer-speed-download')"
+              >
+            </el-input-number>
+            <el-select
+              style="width: 100px;"
+              v-model="uploadUnit"
+              @change="handleUploadChange">
               <el-option
-                v-for="item in speedOptions"
+                v-for="item in speedUnits"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value">
@@ -134,9 +154,20 @@
           </el-col>
           <el-col class="form-item-sub" :span="24">
             {{ $t('preferences.transfer-speed-download') }}
-            <el-select v-model="form.maxOverallDownloadLimit">
+            <el-input-number
+              v-model="maxOverallDownloadLimitParsed"
+              controls-position="right"
+              :min="0"
+              :max="65535"
+              :step="1"
+              :label="$t('preferences.transfer-speed-download')">
+            </el-input-number>
+            <el-select
+              style="width: 100px;"
+              v-model="downloadUnit"
+              @change="handleDownloadChange">
               <el-option
-                v-for="item in speedOptions"
+                v-for="item in speedUnits"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value">
@@ -158,6 +189,13 @@
               v-model="form.btAutoDownloadContent"
             >
               {{ $t('preferences.bt-auto-download-content') }}
+            </el-checkbox>
+          </el-col>
+          <el-col class="form-item-sub" :span="24">
+            <el-checkbox
+              v-model="form.btForceEncryption"
+            >
+              {{ $t('preferences.bt-force-encryption') }}
             </el-checkbox>
           </el-col>
           <el-col class="form-item-sub" :span="24">
@@ -202,7 +240,7 @@
               v-model="form.maxConcurrentDownloads"
               controls-position="right"
               :min="1"
-              :max="10"
+              :max="maxConcurrentDownloads"
               :label="$t('preferences.max-concurrent-downloads')">
             </el-input-number>
           </el-col>
@@ -261,24 +299,31 @@
   import { mapState } from 'vuex'
   import { cloneDeep, extend, isEmpty } from 'lodash'
   import SubnavSwitcher from '@/components/Subnav/SubnavSwitcher'
+  import HistoryDirectory from '@/components/Preference/HistoryDirectory'
   import SelectDirectory from '@/components/Native/SelectDirectory'
   import ThemeSwitcher from '@/components/Preference/ThemeSwitcher'
   import { availableLanguages, getLanguage } from '@shared/locales'
   import { getLocaleManager } from '@/components/Locale'
   import {
-    backupConfig,
     calcFormLabelWidth,
     changedConfig,
     checkIsNeedRestart,
     convertLineToComma,
-    diffConfig
+    diffConfig,
+    extractSpeedUnit
   } from '@shared/utils'
-  import { APP_RUN_MODE } from '@shared/constants'
+  import {
+    APP_RUN_MODE,
+    EMPTY_STRING,
+    ENGINE_MAX_CONCURRENT_DOWNLOADS,
+    ENGINE_RPC_PORT
+  } from '@shared/constants'
   import { reduceTrackerString } from '@shared/utils/tracker'
 
   const initForm = (config) => {
     const {
       autoHideWindow,
+      btForceEncryption,
       btSaveMetadata,
       dir,
       engineMaxConnectionPerServer,
@@ -300,13 +345,20 @@
       runMode,
       seedRatio,
       seedTime,
+      showProgressBar,
       taskNotification,
       theme,
       traySpeedometer
     } = config
+
+    const btAutoDownloadContent = followTorrent &&
+      followMetalink &&
+      !pauseMetadata
+
     const result = {
       autoHideWindow,
-      btAutoDownloadContent: !pauseMetadata,
+      btAutoDownloadContent,
+      btForceEncryption,
       btSaveMetadata,
       continue: config.continue,
       dir,
@@ -324,10 +376,12 @@
       newTaskShowDownloading,
       noConfirmBeforeDeleteTask,
       openAtLogin,
+      pauseMetadata,
       resumeAllWhenAppLaunched,
       runMode,
       seedRatio,
       seedTime,
+      showProgressBar,
       taskNotification,
       theme,
       traySpeedometer
@@ -339,6 +393,7 @@
     name: 'mo-preference-basic',
     components: {
       [SubnavSwitcher.name]: SubnavSwitcher,
+      [HistoryDirectory.name]: HistoryDirectory,
       [SelectDirectory.name]: SelectDirectory,
       [ThemeSwitcher.name]: ThemeSwitcher
     },
@@ -347,13 +402,6 @@
       const formOriginal = initForm(this.$store.state.preference.config)
       let form = {}
       form = initForm(extend(form, formOriginal, changedConfig.basic))
-
-      if (backupConfig.theme === undefined) {
-        backupConfig.theme = formOriginal.theme
-      } else {
-        formOriginal.theme = backupConfig.theme
-      }
-      backupConfig.locale = formOriginal.locale
 
       return {
         form,
@@ -371,67 +419,78 @@
       title () {
         return this.$t('preferences.basic')
       },
+      maxConcurrentDownloads () {
+        return ENGINE_MAX_CONCURRENT_DOWNLOADS
+      },
+      maxOverallDownloadLimitParsed: {
+        get () {
+          return parseInt(this.form.maxOverallDownloadLimit)
+        },
+        set (value) {
+          const limit = value > 0 ? `${value}${this.downloadUnit}` : 0
+          this.form.maxOverallDownloadLimit = limit
+        }
+      },
+      maxOverallUploadLimitParsed: {
+        get () {
+          return parseInt(this.form.maxOverallUploadLimit)
+        },
+        set (value) {
+          const limit = value > 0 ? `${value}${this.uploadUnit}` : 0
+          this.form.maxOverallUploadLimit = limit
+        }
+      },
+      downloadUnit: {
+        get () {
+          const { maxOverallDownloadLimit } = this.form
+          return extractSpeedUnit(maxOverallDownloadLimit)
+        },
+        set (value) {
+          return value
+        }
+      },
+      uploadUnit: {
+        get () {
+          const { maxOverallUploadLimit } = this.form
+          return extractSpeedUnit(maxOverallUploadLimit)
+        },
+        set (value) {
+          return value
+        }
+      },
       runModes () {
-        return [
+        let result = [
           {
             label: this.$t('preferences.run-mode-standard'),
-            value: 1
+            value: APP_RUN_MODE.STANDARD
           },
           {
-            label: this.$t('preferences.run-mode-menu-bar'),
-            value: 2
+            label: this.$t('preferences.run-mode-tray'),
+            value: APP_RUN_MODE.TRAY
           }
         ]
+
+        if (this.isMac) {
+          result = [
+            ...result,
+            {
+              label: this.$t('preferences.run-mode-hide-tray'),
+              value: APP_RUN_MODE.HIDE_TRAY
+            }
+          ]
+        }
+
+        return result
       },
-      speedOptions () {
+      speedUnits () {
         return [
           {
-            label: this.$t('preferences.transfer-speed-unlimited'),
-            value: 0
+            label: 'KB/s',
+            value: 'K'
           },
           {
-            label: '128 KB/s',
-            value: '128K'
-          },
-          {
-            label: '256 KB/s',
-            value: '256K'
-          },
-          {
-            label: '512 KB/s',
-            value: '512K'
-          },
-          {
-            label: '1 MB/s',
-            value: '1M'
-          },
-          {
-            label: '2 MB/s',
-            value: '2M'
-          },
-          {
-            label: '3 MB/s',
-            value: '3M'
-          },
-          {
-            label: '5 MB/s',
-            value: '5M'
-          },
-          {
-            label: '8 MB/s',
-            value: '8M'
-          },
-          {
-            label: '10 MB/s',
-            value: '10M'
-          },
-          {
-            label: '20 MB/s',
-            value: '20M'
-          },
-          {
-            label: '30 MB/s',
-            value: '30M'
+            label: 'MB/s',
+            value: 'M'
           }
         ]
       },
@@ -457,6 +516,9 @@
       showHideAppMenuOption () {
         return is.windows() || is.linux()
       },
+      rpcDefaultPort () {
+        return ENGINE_RPC_PORT
+      },
       ...mapState('preference', {
         config: state => state.config
       })
@@ -465,17 +527,32 @@
       handleLocaleChange (locale) {
         const lng = getLanguage(locale)
         getLocaleManager().changeLanguage(lng)
-        this.$electron.ipcRenderer.send('command',
-                                        'application:change-locale', lng)
       },
       handleThemeChange (theme) {
         this.form.theme = theme
-        this.$electron.ipcRenderer.send('command',
-                                        'application:change-theme', theme)
+      },
+      handleDownloadChange (value) {
+        const speedLimit = parseInt(this.form.maxOverallDownloadLimit, 10)
+        this.downloadUnit = value
+        const limit = speedLimit > 0 ? `${speedLimit}${value}` : 0
+        this.form.maxOverallDownloadLimit = limit
+      },
+      handleUploadChange (value) {
+        const speedLimit = parseInt(this.form.maxOverallUploadLimit, 10)
+        this.uploadUnit = value
+        const limit = speedLimit > 0 ? `${speedLimit}${value}` : 0
+        this.form.maxOverallUploadLimit = limit
       },
       onKeepSeedingChange (enable) {
         this.form.seedRatio = enable ? 0 : 1
         this.form.seedTime = enable ? 525600 : 60
+      },
+      handleHistoryDirectorySelected (dir) {
+        this.form.dir = dir
+      },
+      handleNativeDirectorySelected (dir) {
+        this.form.dir = dir
+        this.$store.dispatch('preference/recordHistoryDirectory', dir)
       },
       onDirectorySelected (dir) {
         this.form.dir = dir
@@ -499,20 +576,25 @@
             ...changedConfig.advanced
           }
 
-          const { btAutoDownloadContent, runMode, openAtLogin, autoHideWindow, btTracker, noProxy } = data
+          const {
+            autoHideWindow,
+            btAutoDownloadContent,
+            btTracker,
+            rpcListenPort
+          } = data
 
           if ('btAutoDownloadContent' in data) {
-            data.pauseMetadata = !btAutoDownloadContent
-            data.followMetalink = btAutoDownloadContent
             data.followTorrent = btAutoDownloadContent
+            data.followMetalink = btAutoDownloadContent
+            data.pauseMetadata = !btAutoDownloadContent
           }
 
           if (btTracker) {
             data.btTracker = reduceTrackerString(convertLineToComma(btTracker))
           }
 
-          if (noProxy) {
-            data.noProxy = convertLineToComma(noProxy)
+          if (rpcListenPort === EMPTY_STRING) {
+            data.rpcListenPort = this.rpcDefaultPort
           }
 
           console.log('[Motrix] preference changed data:', data)
@@ -531,26 +613,10 @@
           changedConfig.advanced = {}
 
           if (this.isRenderer) {
-            this.$electron.ipcRenderer.send('command',
-                                            'application:open-at-login', openAtLogin)
-
-            if ('runMode' in data) {
-              this.$electron.ipcRenderer.send('command',
-                                              'application:toggle-dock', runMode === APP_RUN_MODE.STANDARD)
-            }
-
             if ('autoHideWindow' in data) {
               this.$electron.ipcRenderer.send('command',
                                               'application:auto-hide-window', autoHideWindow)
             }
-
-            if (checkIsNeedRestart(data)) {
-              this.$electron.ipcRenderer.send('command',
-                                              'application:relaunch')
-            }
-
-            this.$electron.ipcRenderer.send('command',
-                                            'application:setup-protocols-client', data.protocols)
 
             if (checkIsNeedRestart(data)) {
               this.$electron.ipcRenderer.send('command', 'application:relaunch')
@@ -559,8 +625,6 @@
         })
       },
       resetForm (formName) {
-        this.$refs.themeSwitcher.currentValue = backupConfig.theme
-        this.handleLocaleChange(this.formOriginal.locale)
         this.syncFormConfig()
       }
     },
@@ -580,16 +644,8 @@
             cancelId: 1
           }).then(({ response }) => {
             if (response === 0) {
-              if (changedConfig.basic.theme !== undefined) {
-                this.$electron.ipcRenderer.send('command',
-                                                'application:change-theme', backupConfig.theme)
-              }
-              if (changedConfig.basic.locale !== undefined) {
-                this.handleLocaleChange(this.formOriginal.locale)
-              }
               changedConfig.basic = {}
               changedConfig.advanced = {}
-              backupConfig.theme = undefined
               next()
             }
           })

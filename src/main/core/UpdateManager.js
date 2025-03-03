@@ -1,9 +1,10 @@
-import { EventEmitter } from 'events'
-import { resolve } from 'path'
+import { EventEmitter } from 'node:events'
+import { resolve } from 'node:path'
 import { dialog } from 'electron'
 import is from 'electron-is'
 import { autoUpdater } from 'electron-updater'
 
+import { PROXY_SCOPES } from '@shared/constants'
 import logger from './Logger'
 import { getI18n } from '../ui/Locale'
 
@@ -22,11 +23,39 @@ export default class UpdateManager extends EventEmitter {
     this.updater.autoDownload = false
     this.updater.autoInstallOnAppQuit = false
     this.updater.logger = logger
+    logger.info('[Motrix] setup proxy:', this.options.proxy)
+    this.setupProxy(this.options.proxy)
+
     this.autoCheckData = {
       checkEnable: this.options.autoCheck,
       userCheck: false
     }
     this.init()
+  }
+
+  setupProxy (proxy) {
+    const { enable, server, scope = [] } = proxy
+    if (!enable || !server || !scope.includes(PROXY_SCOPES.UPDATE_APP)) {
+      this.updater.netSession.setProxy({
+        proxyRules: undefined
+      })
+      return
+    }
+
+    const url = new URL(server)
+    const { username, password, protocol = 'http:', host, port } = url
+    const proxyRules = `${protocol}//${host}`
+
+    logger.info(`[Motrix] setup proxy: ${proxyRules}`, username, password, protocol, host, port)
+    this.updater.netSession.setProxy({
+      proxyRules
+    })
+
+    if (server.includes('@')) {
+      this.updater.signals.login((_authInfo, callback) => {
+        callback(username, password)
+      })
+    }
   }
 
   init () {
@@ -72,6 +101,8 @@ export default class UpdateManager extends EventEmitter {
     }).then(({ response }) => {
       if (response === 0) {
         this.updater.downloadUpdate()
+      } else {
+        this.emit('update-cancelled', info)
       }
     })
   }

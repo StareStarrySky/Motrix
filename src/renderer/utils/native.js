@@ -1,7 +1,6 @@
-import is from 'electron-is'
+import { access, constants } from 'node:fs'
+import { resolve } from 'node:path'
 import { shell, nativeTheme } from '@electron/remote'
-import { access, constants } from 'fs'
-import { resolve } from 'path'
 import { Message } from 'element-ui'
 
 import {
@@ -10,14 +9,15 @@ import {
 } from '@shared/utils'
 import { APP_THEME, TASK_STATUS } from '@shared/constants'
 
-export function showItemInFolder (fullPath, { errorMsg }) {
+export const showItemInFolder = (fullPath, { errorMsg }) => {
   if (!fullPath) {
     return
   }
 
+  fullPath = resolve(fullPath)
   access(fullPath, constants.F_OK, (err) => {
-    console.log(`[Motrix] ${fullPath} ${err ? 'does not exist' : 'exists'}`)
-    if (err) {
+    console.warn(`[Motrix] ${fullPath} ${err ? 'does not exist' : 'exists'}`)
+    if (err && errorMsg) {
       Message.error(errorMsg)
       return
     }
@@ -35,7 +35,7 @@ export const openItem = async (fullPath) => {
   return result
 }
 
-export function getTaskFullPath (task) {
+export const getTaskFullPath = (task) => {
   const { dir, files, bittorrent } = task
   let result = resolve(dir)
 
@@ -67,7 +67,7 @@ export function getTaskFullPath (task) {
   return result
 }
 
-export function moveTaskFilesToTrash (task) {
+export const moveTaskFilesToTrash = (task) => {
   /**
    * For magnet link tasks, there is bittorrent, but there is no bittorrent.info.
    * The path is not a complete path before it becomes a BT task.
@@ -85,12 +85,10 @@ export function moveTaskFilesToTrash (task) {
   }
 
   let deleteResult1 = true
-  access(path, constants.F_OK, (err) => {
+  access(path, constants.F_OK, async (err) => {
     console.log(`[Motrix] ${path} ${err ? 'does not exist' : 'exists'}`)
     if (!err) {
-      // Electron >= 12.x
-      // deleteResult1 = shell.trashItem(path)
-      deleteResult1 = shell.moveItemToTrash(path)
+      deleteResult1 = await shell.trashItem(path)
     }
   })
 
@@ -101,25 +99,18 @@ export function moveTaskFilesToTrash (task) {
 
   let deleteResult2 = true
   const extraFilePath = `${path}.aria2`
-  access(extraFilePath, constants.F_OK, (err) => {
+  access(extraFilePath, constants.F_OK, async (err) => {
     console.log(`[Motrix] ${extraFilePath} ${err ? 'does not exist' : 'exists'}`)
     if (!err) {
-      // Electron >= 12.x
-      // deleteResult2 = shell.trashItem(extraFilePath)
-      deleteResult2 = shell.moveItemToTrash(extraFilePath)
+      deleteResult2 = await shell.trashItem(extraFilePath)
     }
   })
 
   return deleteResult1 && deleteResult2
 }
 
-export function getSystemTheme () {
-  let result = APP_THEME.LIGHT
-  if (!is.macOS()) {
-    return result
-  }
-  result = nativeTheme.shouldUseDarkColors ? APP_THEME.DARK : APP_THEME.LIGHT
-  return result
+export const getSystemTheme = () => {
+  return nativeTheme.shouldUseDarkColors ? APP_THEME.DARK : APP_THEME.LIGHT
 }
 
 export const delayDeleteTaskFiles = (task, delay) => {

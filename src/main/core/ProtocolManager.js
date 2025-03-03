@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 import { app } from 'electron'
 import is from 'electron-is'
 import { parse } from 'querystring'
@@ -28,7 +28,7 @@ export default class ProtocolManager extends EventEmitter {
     this.setup(protocols)
   }
 
-  setup (protocols) {
+  setup (protocols = {}) {
     if (is.dev() || is.mas()) {
       return
     }

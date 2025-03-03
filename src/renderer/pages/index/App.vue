@@ -16,14 +16,16 @@
 <script>
   import is from 'electron-is'
   import { mapGetters, mapState } from 'vuex'
-  import { APP_THEME } from '@shared/constants'
+  import { APP_RUN_MODE, APP_THEME } from '@shared/constants'
   import DynamicTray from '@/components/Native/DynamicTray'
   import EngineClient from '@/components/Native/EngineClient'
   import Ipc from '@/components/Native/Ipc'
   import TitleBar from '@/components/Native/TitleBar'
+  import { getLanguage } from '@shared/locales'
+  import { getLocaleManager } from '@/components/Locale'
 
   export default {
-    name: 'Motrix',
+    name: 'motrix-app',
     components: {
       [DynamicTray.name]: DynamicTray,
       [EngineClient.name]: EngineClient,
@@ -40,13 +42,14 @@
         showWindowActions: state => {
           return (is.windows() || is.linux()) && state.config.hideAppMenu
         },
+        runMode: state => state.config.runMode,
         traySpeedometer: state => state.config.traySpeedometer,
         rpcSecret: state => state.config.rpcSecret
       }),
       ...mapGetters('preference', [
         'theme',
         'locale',
-        'dir'
+        'direction'
       ]),
       themeClass () {
         if (this.theme === APP_THEME.AUTO) {
@@ -58,18 +61,18 @@
       i18nClass () {
         return `i18n-${this.locale}`
       },
-      dirClass () {
-        return `dir-${this.dir}`
+      directionClass () {
+        return `dir-${this.direction}`
       },
       enableTraySpeedometer () {
-        const { traySpeedometer, isMac, isRenderer } = this
-        return traySpeedometer && isMac && isRenderer
+        const { isMac, isRenderer, traySpeedometer, runMode } = this
+        return isMac && isRenderer && traySpeedometer && runMode !== APP_RUN_MODE.HIDE_TRAY
       }
     },
     methods: {
       updateRootClassName () {
-        const { themeClass = '', i18nClass = '', dirClass = '' } = this
-        const className = `${themeClass} ${i18nClass} ${dirClass}`
+        const { themeClass = '', i18nClass = '', directionClass = '' } = this
+        const className = `${themeClass} ${i18nClass} ${directionClass}`
         document.documentElement.className = className
       }
     },
@@ -77,13 +80,17 @@
       this.updateRootClassName()
     },
     watch: {
-      themeClass (val, oldVal) {
+      locale (val) {
+        const lng = getLanguage(val)
+        getLocaleManager().changeLanguage(lng)
+      },
+      themeClass () {
         this.updateRootClassName()
       },
-      i18nClass (val, oldVal) {
+      i18nClass () {
         this.updateRootClassName()
       },
-      dirClass (val, oldVal) {
+      directionClass () {
         this.updateRootClassName()
       }
     }

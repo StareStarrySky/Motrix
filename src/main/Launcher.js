@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 import { app } from 'electron'
 import is from 'electron-is'
 
@@ -63,11 +63,18 @@ export default class Launcher extends EventEmitter {
   }
 
   handleAppEvents () {
+    this.handleRendererRemote()
     this.handleOpenUrl()
     this.handleOpenFile()
 
     this.handelAppReady()
     this.handleAppWillQuit()
+  }
+
+  handleRendererRemote () {
+    app.on('browser-window-created', (_, window) => {
+      require('@electron/remote/main').enable(window.webContents)
+    })
   }
 
   /**
@@ -176,6 +183,7 @@ export default class Launcher extends EventEmitter {
     app.on('will-quit', () => {
       logger.info('[Motrix] will-quit')
       if (global.application) {
+        logger.info('[Motrix] will-quit.application.stop')
         global.application.stop()
       }
     })

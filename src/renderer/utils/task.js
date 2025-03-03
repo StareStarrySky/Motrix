@@ -8,6 +8,12 @@ import {
 import { splitTaskLinks } from '@shared/utils'
 import { buildOuts } from '@shared/utils/rename'
 
+import {
+  buildUrisFromCurl,
+  buildHeadersFromCurl,
+  buildDefaultOptionsFromCurl
+} from '@shared/utils/curl'
+
 export const initTaskForm = state => {
   const { addTaskUrl, addTaskOptions } = state.app
   const {
@@ -36,13 +42,14 @@ export const initTaskForm = state => {
     torrent: '',
     uris: addTaskUrl,
     userAgent: '',
+    authorization: '',
     ...addTaskOptions
   }
   return result
 }
 
 export const buildHeader = (form) => {
-  const { userAgent, referer, cookie } = form
+  const { userAgent, referer, cookie, authorization } = form
   const result = []
 
   if (!isEmpty(userAgent)) {
@@ -53,6 +60,9 @@ export const buildHeader = (form) => {
   }
   if (!isEmpty(cookie)) {
     result.push(`Cookie: ${cookie}`)
+  }
+  if (!isEmpty(authorization)) {
+    result.push(`Authorization: ${authorization}`)
   }
 
   return result
@@ -108,7 +118,11 @@ export const buildUriPayload = (form) => {
   }
 
   uris = splitTaskLinks(uris)
+  const curlHeaders = buildHeadersFromCurl(uris)
+  uris = buildUrisFromCurl(uris)
   const outs = buildOuts(uris, out)
+
+  form = buildDefaultOptionsFromCurl(form, curlHeaders)
 
   const options = buildOption(ADD_TASK_TYPE.URI, form)
   const result = {

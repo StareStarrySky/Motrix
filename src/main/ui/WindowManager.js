@@ -1,23 +1,34 @@
-import { join } from 'path'
-import { EventEmitter } from 'events'
+import { join } from 'node:path'
+import { EventEmitter } from 'node:events'
+import { debounce } from 'lodash'
 import { app, shell, screen, BrowserWindow } from 'electron'
 import is from 'electron-is'
+
 import pageConfig from '../configs/page'
 import logger from '../core/Logger'
-import { debounce } from 'lodash'
 
-const defaultBrowserOptions = {
+const baseBrowserOptions = {
   titleBarStyle: 'hiddenInset',
   show: false,
   width: 1024,
   height: 768,
-  vibrancy: 'ultra-dark',
-  visualEffectState: 'active',
-  backgroundColor: is.macOS() ? '#00000000' : '#FFF',
+  backgroundColor: '#fff',
   webPreferences: {
     nodeIntegration: true
   }
 }
+
+// fix: BrowserWindow rendering bug under linux
+const defaultBrowserOptions = is.macOS()
+  ? {
+    ...baseBrowserOptions,
+    vibrancy: 'ultra-dark',
+    visualEffectState: 'active',
+    backgroundColor: '#00000000'
+  }
+  : {
+    ...baseBrowserOptions
+  }
 
 export default class WindowManager extends EventEmitter {
   constructor (options = {}) {
@@ -98,9 +109,13 @@ export default class WindowManager extends EventEmitter {
       window.setBounds(bounds)
     }
 
-    window.webContents.on('new-window', (e, url) => {
-      e.preventDefault()
+    if (is.dev() && pageOptions.openDevTools) {
+      window.webContents.openDevTools()
+    }
+
+    window.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url)
+      return { action: 'deny' }
     })
 
     if (pageOptions.url) {
@@ -131,6 +146,7 @@ export default class WindowManager extends EventEmitter {
     if (autoHideWindow) {
       this.handleWindowBlur()
     }
+
     return window
   }
 
@@ -152,6 +168,10 @@ export default class WindowManager extends EventEmitter {
 
   destroyWindow (page) {
     const win = this.getWindow(page)
+    if (!win) {
+      return
+    }
+
     this.removeWindow(page)
     win.removeListener('closed')
     win.removeListener('move')

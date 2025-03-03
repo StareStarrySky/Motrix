@@ -17,6 +17,7 @@ export default {
   'file-completed-size': 'Completed',
   'selected-files-sum': 'Selected: {{selectedFilesCount}} files, total size {{selectedFilesTotalSize}}',
   'select-at-least-one': 'Please select at least one file',
+  'task-gid': 'GID',
   'task-name': 'Task Name',
   'task-out': 'Rename',
   'task-out-tips': 'Optional',
@@ -25,6 +26,7 @@ export default {
   'pause-task': 'Pause Task',
   'task-ua': 'UA',
   'task-user-agent': 'User-Agent',
+  'task-authorization': 'Authorization',
   'task-referer': 'Referer',
   'task-cookie': 'Cookie',
   'task-proxy': 'Proxy',
@@ -112,7 +114,7 @@ export default {
   'bt-download-complete-message': 'Completed downloading {{taskName}}, seeding',
   'bt-download-complete-notify': 'BT Download Completed, seeding...',
   'bt-download-complete-tips': 'Tips: You can stop a task to end its seeding',
-  'bt-stopping-seeding-tip': 'Stopping seeding, it will take some time to disconnect, please wait...',
+  'bt-stopping-seeding-tip': 'Stopping seeding, it will take some time to disconnect, please wait patiently',
   'download-fail-message': 'Failed to download {{taskName}}',
   'download-fail-notify': 'Download Failed'
 }

@@ -1,9 +1,11 @@
 <template>
   <el-dialog
     custom-class="tab-title-dialog add-task-dialog"
-    width="64vw"
-    :visible.sync="visible"
-    :before-close="handleClose"
+    width="67vw"
+    :visible="visible"
+    :top="dialogTop"
+    :show-close="false"
+    :before-close="beforeClose"
     @open="handleOpen"
     @opened="handleOpened"
     @closed="handleClosed"
@@ -68,10 +70,14 @@
           v-model="form.dir"
           :readonly="isMas"
         >
+          <mo-history-directory
+            slot="prepend"
+            @selected="handleHistoryDirectorySelected"
+          />
           <mo-select-directory
             v-if="isRenderer"
             slot="append"
-            @selected="onDirectorySelected"
+            @selected="handleNativeDirectorySelected"
           />
         </el-input>
       </el-form-item>
@@ -86,6 +92,19 @@
             :autosize="{ minRows: 2, maxRows: 3 }"
             :placeholder="$t('task.task-user-agent')"
             v-model="form.userAgent"
+          >
+          </el-input>
+        </el-form-item>
+        <el-form-item
+          :label="`${$t('task.task-authorization')}: `"
+          :label-width="formLabelWidth"
+        >
+          <el-input
+            type="textarea"
+            auto-complete="off"
+            :autosize="{ minRows: 2, maxRows: 3 }"
+            :placeholder="$t('task.task-authorization')"
+            v-model="form.authorization"
           >
           </el-input>
         </el-form-item>
@@ -116,7 +135,7 @@
           </el-input>
         </el-form-item>
         <el-row :gutter="12">
-          <el-col :span="15" :xs="24">
+          <el-col :span="16" :xs="24">
             <el-form-item
               :label="`${$t('task.task-proxy')}: `"
               :label-width="formLabelWidth"
@@ -127,7 +146,7 @@
               </el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="9" :xs="24">
+          <el-col :span="8" :xs="24">
             <div class="help-link">
               <a target="_blank" href="https://github.com/agalwood/Motrix/wiki/Proxy" rel="noopener noreferrer">
                 {{ $t('preferences.proxy-tips') }}
@@ -143,6 +162,14 @@
         </el-form-item>
       </div>
     </el-form>
+    <button
+      slot="title"
+      type="button"
+      class="el-dialog__headerbtn"
+      aria-label="Close"
+      @click="handleClose">
+      <i class="el-dialog__close el-icon el-icon-close"></i>
+    </button>
     <div slot="footer" class="dialog-footer">
       <el-row>
         <el-col :span="9" :xs="9">
@@ -170,6 +197,7 @@
   import is from 'electron-is'
   import { mapState } from 'vuex'
   import { isEmpty } from 'lodash'
+  import HistoryDirectory from '@/components/Preference/HistoryDirectory'
   import SelectDirectory from '@/components/Native/SelectDirectory'
   import SelectTorrent from '@/components/Task/SelectTorrent'
   import {
@@ -184,6 +212,7 @@
   export default {
     name: 'mo-add-task',
     components: {
+      [HistoryDirectory.name]: HistoryDirectory,
       [SelectDirectory.name]: SelectDirectory,
       [SelectTorrent.name]: SelectTorrent
     },
@@ -199,7 +228,7 @@
     },
     data () {
       return {
-        formLabelWidth: '100px',
+        formLabelWidth: '110px',
         showAdvanced: false,
         form: {},
         rules: {}
@@ -216,6 +245,9 @@
       }),
       taskType () {
         return this.type
+      },
+      dialogTop () {
+        return this.showAdvanced ? '8vh' : '15vh'
       }
     },
     watch: {
@@ -239,14 +271,20 @@
       }
     },
     methods: {
-      autofillResourceLink () {
-        const content = this.$electron.clipboard.readText()
+      async autofillResourceLink () {
+        const content = await navigator.clipboard.readText()
         const hasResource = detectResource(content)
         if (!hasResource) {
           return
         }
+
         if (isEmpty(this.form.uris)) {
           this.form.uris = content
+        }
+      },
+      beforeClose () {
+        if (isEmpty(this.form.uris) && isEmpty(this.form.torrent)) {
+          this.handleClose()
         }
       },
       handleOpen () {
@@ -261,10 +299,10 @@
       handleOpened () {
         this.detectThunderResource(this.form.uris)
       },
-      handleCancel (formName) {
+      handleCancel () {
         this.$store.dispatch('app/hideAddTaskDialog')
       },
-      handleClose (done) {
+      handleClose () {
         this.$store.dispatch('app/hideAddTaskDialog')
         this.$store.dispatch('app/updateAddTaskOptions', {})
       },
@@ -278,7 +316,7 @@
           this.submitForm('taskForm')
         }
       },
-      handleTabClick (tab, event) {
+      handleTabClick (tab) {
         this.$store.dispatch('app/changeAddTaskType', tab.name)
       },
       handleUriPaste () {
@@ -300,8 +338,12 @@
         this.form.torrent = torrent
         this.form.selectFile = selectedFileIndex
       },
-      onDirectorySelected (dir) {
+      handleHistoryDirectorySelected (dir) {
         this.form.dir = dir
+      },
+      handleNativeDirectorySelected (dir) {
+        this.form.dir = dir
+        this.$store.dispatch('preference/recordHistoryDirectory', dir)
       },
       reset () {
         this.showAdvanced = false
@@ -322,7 +364,7 @@
         } else if (type === 'metalink') {
         // @TODO addMetalink
         } else {
-          console.error('addTask fail', form)
+          console.error('[Motrix] Add task fail', form)
         }
       },
       submitForm (formName) {

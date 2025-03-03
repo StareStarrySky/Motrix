@@ -6,6 +6,11 @@
     :label-width="formLabelWidth"
     v-if="task"
   >
+    <el-form-item :label="`${$t('task.task-gid')}: `">
+      <div class="form-static-value">
+        {{ task.gid }}
+      </div>
+    </el-form-item>
     <el-form-item :label="`${$t('task.task-name')}: `">
       <div class="form-static-value">
         {{ taskFullName }}
@@ -74,7 +79,6 @@
 <script>
   import is from 'electron-is'
   import { mapState } from 'vuex'
-  import * as clipboard from 'clipboard-polyfill'
   import {
     bytesToSize,
     calcFormLabelWidth,
@@ -163,7 +167,7 @@
       handleCopyClick () {
         const { task } = this
         const uri = getTaskUri(task)
-        clipboard.writeText(uri)
+        navigator.clipboard.writeText(uri)
           .then(() => {
             this.$msg.success(this.$t('task.copy-link-success'))
           })

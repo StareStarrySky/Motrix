@@ -21,10 +21,18 @@ import {
   GRAPHIC,
   NONE_SELECTED_FILES,
   SELECTED_ALL_FILES,
-  UNKNOWN_PEERID
+  RESOURCE_TAGS,
+  IMAGE_SUFFIXES,
+  AUDIO_SUFFIXES,
+  VIDEO_SUFFIXES,
+  SUB_SUFFIXES,
+  UNKNOWN_PEERID,
+  SUPPORT_RTL_LOCALES,
+  UNKNOWN_PEERID_NAME,
+  DOCUMENT_SUFFIXES
 } from '@shared/constants'
 
-export function bytesToSize (bytes, precision = 1) {
+export const bytesToSize = (bytes, precision = 1) => {
   const b = parseInt(bytes, 10)
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   if (b === 0) { return '0 KB' }
@@ -33,7 +41,22 @@ export function bytesToSize (bytes, precision = 1) {
   return `${(b / (1024 ** i)).toFixed(precision)} ${sizes[i]}`
 }
 
-export function bitfieldToPercent (text) {
+export const extractSpeedUnit = (speed = '') => {
+  if (parseInt(speed) === 0) {
+    return 'K'
+  }
+
+  const regex = /^(\d+\.?\d*)([KMG])$/
+  const match = regex.exec(speed)
+
+  if (!match) {
+    return 'K'
+  }
+
+  return match[2]
+}
+
+export const bitfieldToPercent = (text) => {
   const len = text.length - 1
   let p
   let one = 0
@@ -47,7 +70,7 @@ export function bitfieldToPercent (text) {
   return Math.floor(one / (4 * len) * 100).toString()
 }
 
-export function bitfieldToGraphic (text) {
+export const bitfieldToGraphic = (text) => {
   const len = text.length
   let result = ''
   for (let i = 0; i < len; i++) {
@@ -56,18 +79,21 @@ export function bitfieldToGraphic (text) {
   return result
 }
 
-export function peerIdParser (str) {
-  str = unescape(str)
-  const buffer = Buffer.from(str, 'binary')
-
-  if (buffer === UNKNOWN_PEERID) {
-    return 'unknown'
+export const peerIdParser = (str) => {
+  if (!str || str === UNKNOWN_PEERID) {
+    return UNKNOWN_PEERID_NAME
   }
+
   let parsed = {}
+  let decodedStr
   try {
+    // decodeURI or decodeURIComponent cannot parse '%2DUT360W%2D%92%B6%EBh%1F%A1%DBfo%F6%D5I'
+    decodedStr = unescape(str)
+    const buffer = Buffer.from(decodedStr, 'binary')
     parsed = bitTorrentPeerId(buffer)
   } catch (e) {
-    console.log('peerIdParser.fail', e)
+    console.log('peerIdParser.fail', e, str, decodedStr)
+    return UNKNOWN_PEERID_NAME
   }
 
   const result = parsed.version
@@ -76,18 +102,18 @@ export function peerIdParser (str) {
   return result
 }
 
-export function calcProgress (totalLength, completedLength) {
+export const calcProgress = (totalLength, completedLength, decimal = 2) => {
   const total = parseInt(totalLength, 10)
   const completed = parseInt(completedLength, 10)
   if (total === 0 || completed === 0) {
     return 0
   }
   const percentage = completed / total * 100
-  const result = parseFloat(percentage.toFixed(2))
+  const result = parseFloat(percentage.toFixed(decimal))
   return result
 }
 
-export function calcRatio (totalLength, uploadLength) {
+export const calcRatio = (totalLength, uploadLength) => {
   const total = parseInt(totalLength, 10)
   const upload = parseInt(uploadLength, 10)
   if (total === 0 || upload === 0) {
@@ -99,7 +125,7 @@ export function calcRatio (totalLength, uploadLength) {
   return result
 }
 
-export function timeRemaining (totalLength, completedLength, downloadSpeed) {
+export const timeRemaining = (totalLength, completedLength, downloadSpeed) => {
   const remainingLength = totalLength - completedLength
   return Math.ceil(remainingLength / downloadSpeed)
 }
@@ -117,7 +143,7 @@ export function timeRemaining (totalLength, completedLength, downloadSpeed) {
  *  second: 's'
  * }
  */
-export function timeFormat (seconds, { prefix = '', suffix = '', i18n }) {
+export const timeFormat = (seconds, { prefix = '', suffix = '', i18n }) => {
   let result = ''
   let hours = ''
   let minutes = ''
@@ -149,7 +175,7 @@ export function timeFormat (seconds, { prefix = '', suffix = '', i18n }) {
   return result ? `${prefix} ${result} ${suffix}` : result
 }
 
-export function localeDateTimeFormat (timestamp, locale) {
+export const localeDateTimeFormat = (timestamp, locale) => {
   if (!timestamp) {
     return ''
   }
@@ -168,7 +194,7 @@ export function localeDateTimeFormat (timestamp, locale) {
   })
 }
 
-export function ellipsis (str = '', maxLen = 64) {
+export const ellipsis = (str = '', maxLen = 64) => {
   const len = str.length
   let result = str
   if (len < maxLen) {
@@ -182,7 +208,7 @@ export function ellipsis (str = '', maxLen = 64) {
   return result
 }
 
-export function getFileSelection (files = []) {
+export const getFileSelection = (files = []) => {
   console.log('getFileSelection===>', files)
   const selectedFiles = files.filter((file) => file.selected)
   if (files.length === 0 || selectedFiles.length === 0) {
@@ -201,7 +227,7 @@ export function getFileSelection (files = []) {
   return result
 }
 
-export function getTaskName (task, options = {}) {
+export const getTaskName = (task, options = {}) => {
   const o = {
     defaultName: '',
     maxLen: 64, // -1: No limit length
@@ -226,7 +252,7 @@ export function getTaskName (task, options = {}) {
   return result
 }
 
-export function getFileNameFromFile (file) {
+export const getFileNameFromFile = (file) => {
   if (!file) {
     return ''
   }
@@ -245,17 +271,17 @@ export function getFileNameFromFile (file) {
   return path.substring(index + 1)
 }
 
-export function isMagnetTask (task) {
+export const isMagnetTask = (task) => {
   const { bittorrent } = task
   return bittorrent && !bittorrent.info
 }
 
-export function checkTaskIsSeeder (task) {
+export const checkTaskIsSeeder = (task) => {
   const { bittorrent, seeder } = task
   return !!bittorrent && seeder === 'true'
 }
 
-export function getTaskUri (task, withTracker = false) {
+export const getTaskUri = (task, withTracker = false) => {
   const { files } = task
   let result = ''
   if (checkTaskIsBT(task)) {
@@ -271,7 +297,7 @@ export function getTaskUri (task, withTracker = false) {
   return result
 }
 
-export function buildMagnetLink (task, withTracker = false, btTracker = []) {
+export const buildMagnetLink = (task, withTracker = false, btTracker = []) => {
   const { bittorrent, infoHash } = task
   const { info } = bittorrent
 
@@ -294,7 +320,7 @@ export function buildMagnetLink (task, withTracker = false, btTracker = []) {
   return result
 }
 
-export function checkTaskTitleIsEmpty (task) {
+export const checkTaskTitleIsEmpty = (task) => {
   const { files, bittorrent } = task
   const [file] = files
   const { path } = file
@@ -305,17 +331,17 @@ export function checkTaskTitleIsEmpty (task) {
   return result === ''
 }
 
-export function checkTaskIsBT (task = {}) {
+export const checkTaskIsBT = (task = {}) => {
   const { bittorrent } = task
   return !!bittorrent
 }
 
-export function isTorrent (file) {
+export const isTorrent = (file) => {
   const { name, type } = file
   return name.endsWith('.torrent') || type === 'application/x-bittorrent'
 }
 
-export function getAsBase64 (file, callback) {
+export const getAsBase64 = (file, callback) => {
   const reader = new FileReader()
   reader.addEventListener('load', () => {
     // https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
@@ -325,7 +351,7 @@ export function getAsBase64 (file, callback) {
   reader.readAsDataURL(file)
 }
 
-export function mergeTaskResult (response = []) {
+export const mergeTaskResult = (response = []) => {
   let result = []
   for (const res of response) {
     result = result.concat(...res)
@@ -333,7 +359,7 @@ export function mergeTaskResult (response = []) {
   return result
 }
 
-export function changeKeysCase (obj, caseConverter) {
+export const changeKeysCase = (obj, caseConverter) => {
   const result = {}
   if (isEmpty(obj) || !isFunction(caseConverter)) {
     return result
@@ -347,19 +373,19 @@ export function changeKeysCase (obj, caseConverter) {
   return result
 }
 
-export function changeKeysToCamelCase (obj) {
+export const changeKeysToCamelCase = (obj = {}) => {
   return changeKeysCase(obj, camelCase)
 }
 
-export function changeKeysToKebabCase (obj) {
+export const changeKeysToKebabCase = (obj = {}) => {
   return changeKeysCase(obj, kebabCase)
 }
 
-export function validateNumber (n) {
+export const validateNumber = (n) => {
   return !isNaN(parseFloat(n)) && isFinite(n) && Number(n) === n
 }
 
-export function fixValue (obj) {
+export const fixValue = (obj = {}) => {
   const result = {}
   for (const [k, v] of Object.entries(obj)) {
     if (v === 'true') {
@@ -375,7 +401,7 @@ export function fixValue (obj) {
   return result
 }
 
-export function separateConfig (options) {
+export const separateConfig = (options) => {
   // user
   const user = {}
   // system
@@ -397,109 +423,69 @@ export function separateConfig (options) {
   }
 }
 
-export function compactUndefined (arr = []) {
+export const compactUndefined = (arr = []) => {
   return arr.filter((item) => {
     return item !== undefined
   })
 }
 
-export function splitTextRows (text = '') {
-  let result = text.replace(/(?:\r\n|\r|\n)/g, '\n').split('\n') || []
+export const splitTextRows = (text = '') => {
+  text = `${text}`
+  let result = text
+    .replace(/(?:\\\r\\\n|\\\r|\\\n)/g, ' ')
+    .replace(/(?:\r\n|\r|\n)/g, '\n')
+    .split('\n') || []
   result = result.map((row) => row.trim())
   return result
 }
 
-export function convertCommaToLine (text = '') {
+export const convertCommaToLine = (text = '') => {
+  text = `${text}`
   let arr = text.split(',')
   arr = arr.map((row) => row.trim())
   const result = arr.join('\n').trim()
   return result
 }
 
-export function convertLineToComma (text = '') {
+export const convertLineToComma = (text = '') => {
   const result = text.trim().replace(/(?:\r\n|\r|\n)/g, ',')
   return result
 }
 
-export const imageSuffix = [
-  '.ai',
-  '.bmp',
-  '.eps',
-  '.gif',
-  '.icn',
-  '.ico',
-  '.jpeg',
-  '.jpg',
-  '.png',
-  '.psd',
-  '.raw',
-  '.sketch',
-  '.svg',
-  '.tif',
-  '.webp',
-  '.xd'
-]
-export const audioSuffix = [
-  '.aac',
-  '.ape',
-  '.flac',
-  '.flav',
-  '.m4a',
-  '.mp3',
-  '.ogg',
-  '.wav',
-  '.wma'
-]
-export const videoSuffix = [
-  '.avi',
-  '.m4v',
-  '.mkv',
-  '.mov',
-  '.mp4',
-  '.mpg',
-  '.rmvb',
-  '.vob',
-  '.wmv'
-]
-
-export const subSuffix = [
-  '.ass',
-  '.idx',
-  '.smi',
-  '.srt',
-  '.ssa',
-  '.sst',
-  '.sub'
-]
-
-export function filterVideoFiles (files = []) {
-  const suffix = [...videoSuffix, ...subSuffix]
+export const filterVideoFiles = (files = []) => {
+  const suffix = [...VIDEO_SUFFIXES, ...SUB_SUFFIXES]
   return files.filter((item) => {
     return suffix.includes(item.extension)
   })
 }
 
-export function filterAudioFiles (files = []) {
+export const filterAudioFiles = (files = []) => {
   return files.filter((item) => {
-    return audioSuffix.includes(item.extension)
+    return AUDIO_SUFFIXES.includes(item.extension)
   })
 }
 
-export function filterImageFiles (files = []) {
+export const filterImageFiles = (files = []) => {
   return files.filter((item) => {
-    return imageSuffix.includes(item.extension)
+    return IMAGE_SUFFIXES.includes(item.extension)
   })
 }
 
-export function isAudioOrVideo (uri = '') {
-  const suffixs = [...audioSuffix, ...videoSuffix]
+export const filterDocumentFiles = (files = []) => {
+  return files.filter((item) => {
+    return DOCUMENT_SUFFIXES.includes(item.extension)
+  })
+}
+
+export const isAudioOrVideo = (uri = '') => {
+  const suffixs = [...AUDIO_SUFFIXES, ...VIDEO_SUFFIXES]
   const result = suffixs.some((suffix) => {
     return uri.includes(suffix)
   })
   return result
 }
 
-export function needCheckCopyright (links = '') {
+export const needCheckCopyright = (links = '') => {
   const uris = splitTaskLinks(links)
   const avs = uris.filter(uri => {
     return isAudioOrVideo(uri)
@@ -509,7 +495,7 @@ export function needCheckCopyright (links = '') {
   return result
 }
 
-export function decodeThunderLink (url = '') {
+export const decodeThunderLink = (url = '') => {
   if (!url.startsWith('thunder://')) {
     return url
   }
@@ -521,7 +507,7 @@ export function decodeThunderLink (url = '') {
   return result
 }
 
-export function splitTaskLinks (links = '') {
+export const splitTaskLinks = (links = '') => {
   const temp = compact(splitTextRows(links))
   const result = temp.map((item) => {
     return decodeThunderLink(item)
@@ -529,14 +515,13 @@ export function splitTaskLinks (links = '') {
   return result
 }
 
-const resourceTag = ['http://', 'https://', 'ftp://', 'magnet:', 'thunder://']
-export function detectResource (content) {
-  return resourceTag.some((type) => {
+export const detectResource = (content) => {
+  return RESOURCE_TAGS.some((type) => {
     return content.includes(type)
   })
 }
 
-export function buildFileList (rawFile) {
+export const buildFileList = (rawFile) => {
   rawFile.uid = Date.now()
   const file = {
     status: 'ready',
@@ -550,35 +535,15 @@ export function buildFileList (rawFile) {
   return fileList
 }
 
-const supportRtlLocales = [
-  /* 'العربية', Arabic */
-  'ar',
-  /* 'فارسی', Persian */
-  'fa',
-  /* 'עברית', Hebrew */
-  'he',
-  /* 'Kurdî / كوردی', Kurdish */
-  'ku',
-  /* 'پنجابی', Western Punjabi */
-  'pa',
-  /* 'پښتو', Pashto, */
-  'ps',
-  /* 'سنڌي', Sindhi */
-  'sd',
-  /* 'اردو', Urdu */
-  'ur',
-  /* 'ייִדיש', Yiddish */
-  'yi'
-]
-export function isRTL (locale = 'en-US') {
-  return supportRtlLocales.includes(locale)
+export const isRTL = (locale = 'en-US') => {
+  return SUPPORT_RTL_LOCALES.includes(locale)
 }
 
-export function getLangDirection (locale = 'en-US') {
+export const getLangDirection = (locale = 'en-US') => {
   return isRTL(locale) ? 'rtl' : 'ltr'
 }
 
-export function listTorrentFiles (files) {
+export const listTorrentFiles = (files) => {
   const result = files.map((file, index) => {
     const extension = getFileExtension(file.path)
     const item = {
@@ -593,20 +558,20 @@ export function listTorrentFiles (files) {
   return result
 }
 
-export function getFileName (fullPath) {
+export const getFileName = (fullPath) => {
   // eslint-disable-next-line
   return fullPath.replace(/^.*[\\\/]/, '')
 }
 
-export function getFileExtension (filename) {
+export const getFileExtension = (filename) => {
   return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2)
 }
 
-export function removeExtensionDot (extension = '') {
+export const removeExtensionDot = (extension = '') => {
   return extension.replace('.', '')
 }
 
-export function diffConfig (current = {}, next = {}) {
+export const diffConfig = (current = {}, next = {}) => {
   const curr = pick(current, Object.keys(next))
   const result = omitBy(next, (val, key) => {
     if (isArray(val) || isPlainObject(val)) {
@@ -614,14 +579,15 @@ export function diffConfig (current = {}, next = {}) {
     }
     return curr[key] === val
   })
+
   return result
 }
 
-export function calcFormLabelWidth (locale) {
+export const calcFormLabelWidth = (locale) => {
   return locale.startsWith('de') ? '28%' : '25%'
 }
 
-export function parseHeader (header = '') {
+export const parseHeader = (header = '') => {
   header = header.trim()
   let result = {}
   if (!header) {
@@ -631,8 +597,8 @@ export function parseHeader (header = '') {
   const headers = splitTextRows(header)
   headers.forEach((line) => {
     const index = line.indexOf(':')
-    const name = line.substr(0, index)
-    const value = line.substr(index + 1).trim()
+    const name = line.substring(0, index)
+    const value = line.substring(index + 1).trim()
     result[name] = value
   })
   result = changeKeysToCamelCase(result)
@@ -640,18 +606,22 @@ export function parseHeader (header = '') {
   return result
 }
 
-export function formatOptionsForEngine (options) {
+export const formatOptionsForEngine = (options = {}) => {
   const result = {}
 
   Object.keys(options).forEach((key) => {
     const kebabCaseKey = kebabCase(key)
-    result[kebabCaseKey] = `${options[key]}`
+    if (Array.isArray(options[key])) {
+      result[kebabCaseKey] = options[key].join('\n')
+    } else {
+      result[kebabCaseKey] = `${options[key]}`
+    }
   })
 
   return result
 }
 
-export function buildRpcUrl (options) {
+export const buildRpcUrl = (options = {}) => {
   const { port, secret } = options
   let result = `${ENGINE_RPC_HOST}:${port}/jsonrpc`
   if (secret) {
@@ -662,7 +632,7 @@ export function buildRpcUrl (options) {
   return result
 }
 
-export function checkIsNeedRestart (changed = {}) {
+export const checkIsNeedRestart = (changed = {}) => {
   let result = false
 
   if (isEmpty(changed)) {
@@ -689,7 +659,7 @@ export const checkIsNeedRun = (enable, lastTime, interval) => {
   return (Date.now() - lastTime > interval)
 }
 
-export const getRandomInt = (min = 0, max = 10000) => {
+export const generateRandomInt = (min = 0, max = 10000) => {
   let result = min
   const range = max - min
   result += Math.floor(Math.random() * Math.floor(range))
@@ -702,6 +672,35 @@ export const intersection = (array1 = [], array2 = []) => {
   }
 
   return array1.filter(value => array2.includes(value))
+}
+
+export const cloneArray = (arr = [], reversed = false) => {
+  if (!Array.isArray(arr)) {
+    return arr
+  }
+
+  const result = [...arr]
+  return reversed ? result.reverse() : result
+}
+
+export const pushItemToFixedLengthArray = (arr = [], maxLength, item) => {
+  const result = arr.length >= maxLength
+    ? [...arr.slice(1, maxLength - 1), item]
+    : [...arr, item]
+  return result
+}
+
+export const removeArrayItem = (arr = [], item) => {
+  const idx = arr.indexOf(item)
+  if (idx === -1) {
+    return [...arr]
+  }
+
+  const result = [
+    ...arr.slice(0, idx),
+    ...arr.slice(idx + 1)
+  ]
+  return result
 }
 
 export const getInverseTheme = (theme) => {
