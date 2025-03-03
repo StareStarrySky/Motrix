@@ -9,6 +9,9 @@
         <li @click="showAddTask()" class="non-draggable">
           <mo-icon name="menu-add" width="20" height="20" />
         </li>
+        <li @click="showMakeTorrent()" class="non-draggable">
+          <mo-icon name="menu-make-torrent" width="20" height="20" />
+        </li>
       </ul>
       <ul class="menu bottom-menu">
         <li @click="nav('/preference')" class="non-draggable">
@@ -29,6 +32,7 @@
   import LogoMini from '@/components/Logo/LogoMini'
   import '@/components/Icons/menu-task'
   import '@/components/Icons/menu-add'
+  import '@/components/Icons/menu-make-torrent'
   import '@/components/Icons/menu-preference'
   import '@/components/Icons/menu-about'
 
@@ -55,6 +59,9 @@
     methods: {
       showAddTask (taskType = ADD_TASK_TYPE.URI) {
         this.$store.dispatch('app/showAddTaskDialog', taskType)
+      },
+      showMakeTorrent () {
+        this.$store.dispatch('app/showMakeTorrentDialog')
       },
       showAboutPanel () {
         this.$store.dispatch('app/showAboutPanel')

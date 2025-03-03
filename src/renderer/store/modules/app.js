@@ -29,7 +29,9 @@ const state = {
   addTaskUrl: '',
   addTaskTorrents: [],
   addTaskOptions: {},
-  progress: 0
+  progress: 0,
+  makeTorrentVisible: false,
+  makeTorrentFiles: []
 }
 
 const getters = {
@@ -96,6 +98,12 @@ const mutations = {
   },
   UPDATE_PROGRESS (state, progress) {
     state.progress = progress
+  },
+  UPDATE_MAKE_TORRENT_VISIBLE (state, visible) {
+    state.makeTorrentVisible = visible
+  },
+  UPDATE_MAKE_TORRENT_FILES (state, fileList) {
+    state.makeTorrentFiles = [...fileList]
   }
 }
 
@@ -198,6 +206,16 @@ const actions = {
         }
         commit('UPDATE_PROGRESS', progress)
       })
+  },
+  showMakeTorrentDialog ({ commit }) {
+    commit('UPDATE_MAKE_TORRENT_VISIBLE', true)
+  },
+  hideMakeTorrentDialog ({ commit }) {
+    commit('UPDATE_MAKE_TORRENT_VISIBLE', false)
+    commit('UPDATE_MAKE_TORRENT_FILES', [])
+  },
+  makeTorrentAddFile ({ commit }, { fileList }) {
+    commit('UPDATE_MAKE_TORRENT_FILES', fileList)
   }
 }
 
